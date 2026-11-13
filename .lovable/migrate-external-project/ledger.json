@@ -41,7 +41,7 @@
       "source": "/api/admin/*",
       "outcome": "migrate",
       "status": "pending",
-      "next_action": "Wrong-password rejection verified; needs ADMIN_PASSWORD secret to verify actions"
+      "next_action": "Owner to sign in to ADM tab with the saved password and send coins / toggle tag / timer"
     },
     {
       "capability": "public leaderboard + settings endpoints",
@@ -68,8 +68,8 @@
       "capability": "secrets",
       "source": "ADMIN_PASSWORD",
       "outcome": "migrate",
-      "status": "pending",
-      "next_action": "ADMIN_PASSWORD via secure form"
+      "status": "verified",
+      "next_action": "ADMIN_PASSWORD saved"
     },
     {
       "capability": "cutover",
