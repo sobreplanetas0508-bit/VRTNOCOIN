@@ -43,6 +43,7 @@ export type Database = {
           redeemed_codes: string[]
           run_started_at: string | null
           selected_skin: string
+          timer_multiplier: number | null
           username: string
         }
         Insert: {
@@ -58,6 +59,7 @@ export type Database = {
           redeemed_codes?: string[]
           run_started_at?: string | null
           selected_skin?: string
+          timer_multiplier?: number | null
           username: string
         }
         Update: {
@@ -73,6 +75,7 @@ export type Database = {
           redeemed_codes?: string[]
           run_started_at?: string | null
           selected_skin?: string
+          timer_multiplier?: number | null
           username?: string
         }
         Relationships: []
@@ -223,6 +226,10 @@ export type Database = {
         Args: { p_enabled: boolean; p_username: string }
         Returns: number
       }
+      admin_set_personal_timer: {
+        Args: { p_multiplier: number; p_username: string }
+        Returns: number
+      }
       buy_skin: { Args: { p_skin: string }; Returns: Json }
       create_room: {
         Args: { p_max_players: number; p_public: boolean }
@@ -243,6 +250,7 @@ export type Database = {
           redeemed_codes: string[]
           run_started_at: string | null
           selected_skin: string
+          timer_multiplier: number | null
           username: string
         }
         SetofOptions: {
@@ -284,6 +292,7 @@ export type Database = {
         }[]
       }
       my_room_id: { Args: never; Returns: string }
+      my_timer_multiplier: { Args: never; Returns: number }
       player_json: {
         Args: { p: Database["public"]["Tables"]["profiles"]["Row"] }
         Returns: Json

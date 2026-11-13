@@ -486,9 +486,18 @@ for (const [id, enabled] of [["#admin-influencer-on", true], ["#admin-influencer
     username: $<HTMLInputElement>("#admin-influencer-nick").value, enabled
   }));
 }
-$("#admin-timer-normal").addEventListener("click", () => void adminAction("timer", { multiplier: 1 }));
-$("#admin-timer-fast").addEventListener("click", () => void adminAction("timer", { multiplier: 1.5 }));
-$("#admin-timer-double").addEventListener("click", () => void adminAction("timer", { multiplier: 2 }));
+let adminSpeed = 1;
+document.querySelectorAll<HTMLButtonElement>("#admin-speeds [data-speed]").forEach((b) => {
+  b.addEventListener("click", () => {
+    adminSpeed = Number(b.dataset.speed);
+    document.querySelectorAll("#admin-speeds [data-speed]").forEach((x) => x.classList.toggle("active", x === b));
+  });
+});
+$("#admin-timer-server").addEventListener("click", () => void adminAction("timer", { multiplier: adminSpeed, scope: "server" }));
+$("#admin-timer-me").addEventListener("click", () => {
+  if (!player) { toast("Faça login para continuar.", "err"); return; }
+  void adminAction("timer", { multiplier: adminSpeed, scope: "me", username: player.username });
+});
 
 // ------------------------------------------------------------------ rooms (multiplayer)
 function isMenuOpen() {

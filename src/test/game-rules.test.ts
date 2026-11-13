@@ -24,7 +24,12 @@ describe("timer speed", () => {
   it("accepts 2x", () => {
     expect(normalizeTimerSpeed(2)).toBe(2);
   });
+  it("accepts 3x, 4x and 5x", () => {
+    expect(normalizeTimerSpeed(3)).toBe(3);
+    expect(normalizeTimerSpeed(4)).toBe(4);
+    expect(normalizeTimerSpeed(5)).toBe(5);
+  });
   it("falls back to 1x for unknown speeds", () => {
-    expect(normalizeTimerSpeed(3)).toBe(1);
+    expect(normalizeTimerSpeed(6)).toBe(1);
   });
 });

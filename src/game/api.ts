@@ -95,10 +95,10 @@ type MeRes = { player: PlayerData; rank: number | null };
 
 export const api = {
   hasSession: async () => !!(await supabase.auth.getSession()).data.session,
+  /** Timer speed for the signed-in player: their personal speed if set, otherwise the server speed. */
   settings: async () => {
-    const { data, error } = await supabase.from("game_settings").select("timer_multiplier").eq("id", 1).maybeSingle();
-    if (error) throw new ApiError("Sem conexão com o servidor.", 0);
-    return { multiplier: (data?.timer_multiplier ?? 100) / 100 };
+    const value = await rpc<number | null>("my_timer_multiplier");
+    return { multiplier: (value ?? 100) / 100 };
   },
   admin: async (path: string, password: string, body?: Record<string, unknown>) => {
     const res = await adminAction({ data: { ...(body ?? {}), action: path, password } as never });

@@ -15,6 +15,13 @@
       "when": 1794588647351,
       "tag": "0001_rooms_and_tags",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794591134211,
+      "tag": "0002_personal_timer_speed",
+      "breakpoints": true
     }
   ]
 }

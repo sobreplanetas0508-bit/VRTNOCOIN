@@ -312,6 +312,10 @@ input {
 }
 
 /* segmented + tabs */
+.seg.speed-seg {
+  grid-template-columns: repeat(6, 1fr);
+  margin-bottom: 10px;
+}
 .seg {
   display: grid;
   grid-template-columns: 1fr 1fr;

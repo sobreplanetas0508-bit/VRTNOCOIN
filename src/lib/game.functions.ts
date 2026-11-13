@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { TIMER_SPEEDS, type TimerScope } from "@/game/rules";
 import { USERNAME_RE, usernameToEmail, validateRegistration } from "./player-account";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -63,7 +64,7 @@ type AdminInput =
   | { password: string; action: "status" }
   | { password: string; action: "coins"; username: string; amount: number }
   | { password: string; action: "influencer"; username: string; enabled: boolean }
-  | { password: string; action: "timer"; multiplier: number };
+  | { password: string; action: "timer"; multiplier: number; scope: TimerScope; username?: string };
 
 /** Admin panel actions, protected by the ADMIN_PASSWORD secret (checked on the server only). */
 export const adminAction = createServerFn({ method: "POST" })
@@ -113,12 +114,37 @@ export const adminAction = createServerFn({ method: "POST" })
         return { ok: true };
       }
       case "timer": {
-        if (![1, 1.5, 2].includes(data.multiplier)) return { ok: false, error: "Multiplicador inválido." };
-        const { error } = await supabaseAdmin
-          .from("game_settings")
-          .upsert({ id: 1, timer_multiplier: Math.round(data.multiplier * 100) });
+        if (!(TIMER_SPEEDS as readonly number[]).includes(data.multiplier)) {
+          return { ok: false, error: "Multiplicador inválido." };
+        }
+        const value = Math.round(data.multiplier * 100);
+        if (data.scope === "me") {
+          const username = String(data.username ?? "").trim();
+          if (!USERNAME_RE.test(username)) return { ok: false, error: "Faça login para continuar." };
+          const { data: n, error } = await supabaseAdmin.rpc("admin_set_personal_timer", {
+            p_username: username,
+            p_multiplier: value,
+          });
+          if (error) {
+            console.error(error);
+            return { ok: false, error: "Erro interno no servidor. Tente novamente." };
+          }
+          if (!n) return { ok: false, error: "Jogador não encontrado." };
+          return { ok: true };
+        }
+        if (data.scope !== "server") return { ok: false, error: "Dados inválidos." };
+        // Server-wide: everyone (including anyone with a personal speed) uses the chosen speed.
+        const { error } = await supabaseAdmin.from("game_settings").upsert({ id: 1, timer_multiplier: value });
         if (error) {
           console.error(error);
+          return { ok: false, error: "Erro interno no servidor. Tente novamente." };
+        }
+        const { error: clearErr } = await supabaseAdmin
+          .from("profiles")
+          .update({ timer_multiplier: null })
+          .not("timer_multiplier", "is", null);
+        if (clearErr) {
+          console.error(clearErr);
           return { ok: false, error: "Erro interno no servidor. Tente novamente." };
         }
         return { ok: true };

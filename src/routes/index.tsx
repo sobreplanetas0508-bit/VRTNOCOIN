@@ -132,9 +132,16 @@ function Index() {
                   <button id="admin-influencer-on" className="btn btn-primary">Adicionar TAG</button>
                   <button id="admin-influencer-off" className="btn btn-ghost">Remover TAG</button>
                   <p>Velocidade do cronômetro (vale para o ranking)</p>
-                  <button id="admin-timer-normal" className="btn btn-ghost">1x</button>
-                  <button id="admin-timer-fast" className="btn btn-primary">1,5x</button>
-                  <button id="admin-timer-double" className="btn btn-primary">2x</button>
+                  <div className="seg speed-seg" id="admin-speeds">
+                    <button className="seg-btn active" data-speed="1">1x</button>
+                    <button className="seg-btn" data-speed="1.5">1,5x</button>
+                    <button className="seg-btn" data-speed="2">2x</button>
+                    <button className="seg-btn" data-speed="3">3x</button>
+                    <button className="seg-btn" data-speed="4">4x</button>
+                    <button className="seg-btn" data-speed="5">5x</button>
+                  </div>
+                  <button id="admin-timer-server" className="btn btn-primary">Ativar para o servidor inteiro</button>
+                  <button id="admin-timer-me" className="btn btn-ghost">Ativar só para mim</button>
                 </div>
               </div>
               <div className="tab-body hidden" id="tab-rooms">
