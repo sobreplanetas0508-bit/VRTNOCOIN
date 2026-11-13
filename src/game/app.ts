@@ -2,7 +2,7 @@
 import { Game, type RunResult } from "./engine";
 import { api, formatTime, ApiError, type PlayerData, type LeaderboardEntry, type RoomState, type OpenRoom } from "./api";
 import { SKINS, LEADERBOARD_SIZE } from "./skins";
-import { playerTags, OWNER_TAG, ROOM_MIN_PLAYERS } from "./rules";
+import { playerTags, OWNER_TAG, ROOM_MIN_PLAYERS, formatSpeed, normalizeTimerSpeed } from "./rules";
 import { RoomSync, type RaceProgress } from "./room-sync";
 
 let started = false;
@@ -94,6 +94,9 @@ async function startRun(): Promise<boolean> {
   try {
     const settings = await api.settings();
     game.setTimerMultiplier(settings.multiplier);
+    const speedEl = $("#timer-speed");
+    speedEl.textContent = `⏱ ${formatSpeed(normalizeTimerSpeed(settings.multiplier))}`;
+    show(speedEl, normalizeTimerSpeed(settings.multiplier) !== 1);
     await api.startRun();
   } catch (e) {
     toast(errMsg(e), "err");
@@ -471,6 +474,7 @@ $("#admin-login").addEventListener("click", async () => {
     adminPassword = password;
     $<HTMLInputElement>("#admin-password").value = "";
     show($("#admin-controls")); toast("Acesso ADM liberado!");
+    void refreshTimerStatus();
   } catch (e) { toast(errMsg(e), "err"); }
 });
 async function adminAction(path: string, body: unknown) {
@@ -493,11 +497,28 @@ document.querySelectorAll<HTMLButtonElement>("#admin-speeds [data-speed]").forEa
     document.querySelectorAll("#admin-speeds [data-speed]").forEach((x) => x.classList.toggle("active", x === b));
   });
 });
-$("#admin-timer-server").addEventListener("click", () => void adminAction("timer", { multiplier: adminSpeed, scope: "server" }));
-$("#admin-timer-me").addEventListener("click", () => {
-  if (!player) { toast("Faça login para continuar.", "err"); return; }
-  void adminAction("timer", { multiplier: adminSpeed, scope: "me", username: player.username });
-});
+async function refreshTimerStatus() {
+  try {
+    const [server, mine] = await Promise.all([api.serverSpeed(), api.settings()]);
+    $("#admin-timer-status").textContent =
+      `Agora — Servidor: ${formatSpeed(normalizeTimerSpeed(server))} · Você: ${formatSpeed(normalizeTimerSpeed(mine.multiplier))}`;
+  } catch { /* status line is informational only */ }
+}
+async function setTimer(scope: "server" | "me") {
+  if (scope === "me" && !player) { toast("Faça login para continuar.", "err"); return; }
+  const speed = adminSpeed;
+  try {
+    await api.admin("timer", adminPassword, {
+      multiplier: speed, scope, ...(scope === "me" && player ? { username: player.username } : {}),
+    });
+    toast(scope === "server"
+      ? `Cronômetro ${formatSpeed(speed)} ativado para todos!`
+      : `Cronômetro ${formatSpeed(speed)} ativado só para você!`);
+    void refreshTimerStatus();
+  } catch (e) { toast(errMsg(e), "err"); }
+}
+$("#admin-timer-server").addEventListener("click", () => void setTimer("server"));
+$("#admin-timer-me").addEventListener("click", () => void setTimer("me"));
 
 // ------------------------------------------------------------------ rooms (multiplayer)
 function isMenuOpen() {

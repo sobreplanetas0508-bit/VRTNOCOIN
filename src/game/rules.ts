@@ -22,3 +22,8 @@ export function playerTags(p: { influencer?: boolean | null; owner?: boolean | n
   if (p.influencer) return [INFLUENCER_TAG];
   return [];
 }
+
+/** "1x", "1,5x", "5x" (pt-BR decimal comma). */
+export function formatSpeed(value: number): string {
+  return `${String(value).replace(".", ",")}x`;
+}

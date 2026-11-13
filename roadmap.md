@@ -5,3 +5,5 @@
 - [x] ADM panel: 2x timer option
 - [x] ADM timer speeds 3x, 4x, 5x
 - [x] Choose scope: whole server (changes everyone's timer) or only me (VRTnocoin)
+- [x] Make timer speeds work clearly (status + HUD badge), tested
+- [x] Jump a little higher (small increase)

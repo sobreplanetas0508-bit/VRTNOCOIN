@@ -98,6 +98,13 @@ input {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
+.timer-speed {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--g-sun);
+}
 .timer.frozen {
   border-color: var(--g-hot);
   box-shadow: 0 0 0 4px rgba(255, 77, 109, 0.22), 0 10px 30px rgba(0, 0, 0, 0.3);

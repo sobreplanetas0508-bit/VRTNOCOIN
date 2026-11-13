@@ -100,6 +100,12 @@ export const api = {
     const value = await rpc<number | null>("my_timer_multiplier");
     return { multiplier: (value ?? 100) / 100 };
   },
+  /** Server-wide timer speed (what everyone without a personal speed uses). */
+  serverSpeed: async () => {
+    const { data, error } = await supabase.from("game_settings").select("timer_multiplier").eq("id", 1).maybeSingle();
+    if (error) throw new ApiError("Sem conexão com o servidor.", 0);
+    return (data?.timer_multiplier ?? 100) / 100;
+  },
   admin: async (path: string, password: string, body?: Record<string, unknown>) => {
     const res = await adminAction({ data: { ...(body ?? {}), action: path, password } as never });
     if (!res.ok) throw new ApiError(res.error || "Erro ADM", 403);

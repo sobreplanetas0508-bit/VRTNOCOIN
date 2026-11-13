@@ -42,6 +42,7 @@ function Index() {
             <div id="timer" className="timer">
               <div className="timer-label" id="timer-label">SEM MOEDAS</div>
               <div className="timer-value" id="timer-value">00:00.00</div>
+              <div className="timer-speed hidden" id="timer-speed">1x</div>
             </div>
             <div className="hud-coins"><span className="coin-ico"></span><span id="hud-coins">0</span></div>
             <div id="coin-alert" className="coin-alert hidden">Você tocou numa moeda! Cronômetro parado — continue correndo.</div>
@@ -132,6 +133,8 @@ function Index() {
                   <button id="admin-influencer-on" className="btn btn-primary">Adicionar TAG</button>
                   <button id="admin-influencer-off" className="btn btn-ghost">Remover TAG</button>
                   <p>Velocidade do cronômetro (vale para o ranking)</p>
+                  <p id="admin-timer-status" className="hint">Servidor: — · Você: —</p>
+                  <p className="hint">1. Escolha a velocidade · 2. Toque onde ativar</p>
                   <div className="seg speed-seg" id="admin-speeds">
                     <button className="seg-btn active" data-speed="1">1x</button>
                     <button className="seg-btn" data-speed="1.5">1,5x</button>
