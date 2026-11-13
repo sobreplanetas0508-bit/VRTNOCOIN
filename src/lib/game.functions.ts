@@ -113,10 +113,10 @@ export const adminAction = createServerFn({ method: "POST" })
         return { ok: true };
       }
       case "timer": {
-        if (data.multiplier !== 1 && data.multiplier !== 1.5) return { ok: false, error: "Multiplicador inválido." };
+        if (![1, 1.5, 2].includes(data.multiplier)) return { ok: false, error: "Multiplicador inválido." };
         const { error } = await supabaseAdmin
           .from("game_settings")
-          .upsert({ id: 1, timer_multiplier: data.multiplier === 1.5 ? 150 : 100 });
+          .upsert({ id: 1, timer_multiplier: Math.round(data.multiplier * 100) });
         if (error) {
           console.error(error);
           return { ok: false, error: "Erro interno no servidor. Tente novamente." };

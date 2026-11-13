@@ -45,6 +45,7 @@ function Index() {
             </div>
             <div className="hud-coins"><span className="coin-ico"></span><span id="hud-coins">0</span></div>
             <div id="coin-alert" className="coin-alert hidden">Você tocou numa moeda! Cronômetro parado — continue correndo.</div>
+            <ol id="room-live" className="room-live hidden" aria-label="Corrida da sala"></ol>
             <div className="controls-hint" id="controls-hint">← → trocar trilho · ↑ pular · ↓ rolar <span className="touch-only">(ou deslize)</span></div>
           </div>
 
@@ -76,7 +77,7 @@ function Index() {
               <header className="menu-head">
                 <div className="brand small"><span className="brand-top">FUGA DOS</span><span className="brand-bottom">TRILHOS</span></div>
                 <div className="who">
-                  <span className="who-name" id="me-name">—</span>
+                  <span className="who-name"><span id="me-name">—</span><span id="me-tags"></span></span>
                   <button id="btn-logout" className="link-btn">sair</button>
                 </div>
               </header>
@@ -90,6 +91,7 @@ function Index() {
                 <button className="tab active" data-tab="play">Jogar</button>
                 <button className="tab" data-tab="skins">Personagens</button>
                 <button className="tab" data-tab="codes">Códigos</button>
+                <button className="tab" data-tab="rooms">Salas</button>
                 <button className="tab" data-tab="ranking">Ranking</button>
                 <button className="tab" data-tab="admin">ADM</button>
               </nav>
@@ -132,6 +134,49 @@ function Index() {
                   <p>Velocidade do cronômetro (vale para o ranking)</p>
                   <button id="admin-timer-normal" className="btn btn-ghost">1x</button>
                   <button id="admin-timer-fast" className="btn btn-primary">1,5x</button>
+                  <button id="admin-timer-double" className="btn btn-primary">2x</button>
+                </div>
+              </div>
+              <div className="tab-body hidden" id="tab-rooms">
+                <div id="room-lobby">
+                  <p className="hint">Corra contra seus amigos ao mesmo tempo. Quem ficar mais tempo sem pegar moeda vence!</p>
+                  <div className="room-box">
+                    <div className="room-create">
+                      <label className="room-field">Jogadores
+                        <select id="room-max" defaultValue="10">
+                          {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                            <option key={n} value={n}>{n === 2 ? "2 (1x1)" : n}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="room-check"><input id="room-public" type="checkbox" defaultChecked /> Aparecer em salas abertas</label>
+                    </div>
+                    <button id="room-create" className="btn btn-primary">Criar sala</button>
+                  </div>
+                  <form id="room-join-form" className="form code-form room-join">
+                    <input id="room-code" placeholder="CÓDIGO DA SALA" maxLength={5} autoComplete="off" autoCapitalize="characters" spellCheck={false} />
+                    <button className="btn btn-primary" type="submit">Entrar</button>
+                  </form>
+                  <div className="rank-head">
+                    <span>Salas abertas</span>
+                    <button id="room-refresh" className="link-btn">atualizar</button>
+                  </div>
+                  <ul className="ranking" id="room-list"></ul>
+                </div>
+                <div id="room-view" className="hidden">
+                  <div className="room-top">
+                    <div className="room-title"><span className="stat-k">Sala de</span><span id="room-host"></span></div>
+                    <button id="room-code-copy" className="room-code" title="Copiar código">
+                      <span className="stat-k">Código</span><span id="room-code-value">—</span>
+                    </button>
+                  </div>
+                  <p id="room-status" className="hint"></p>
+                  <ol className="ranking" id="room-players"></ol>
+                  <div className="room-actions">
+                    <button id="room-start" className="btn btn-primary btn-xl">Começar corrida</button>
+                    <button id="room-end" className="btn btn-ghost hidden">Encerrar corrida</button>
+                    <button id="room-leave" className="btn btn-ghost">Sair da sala</button>
+                  </div>
                 </div>
               </div>
               <div className="tab-body hidden" id="tab-ranking">
@@ -164,11 +209,18 @@ function Index() {
                 <div><span className="stat-k">Posição global</span><span className="stat-v" id="over-rank">—</span></div>
               </div>
               <p id="over-msg" className="form-msg"></p>
+              <div id="over-room" className="over-room hidden">
+                <div className="rank-head"><span>Corrida da sala</span></div>
+                <p id="over-room-msg" className="form-msg"></p>
+                <ol className="ranking" id="over-room-list"></ol>
+              </div>
+              <button id="btn-room" className="btn btn-primary hidden">Voltar para a sala</button>
               <button id="btn-again" className="btn btn-primary">Correr de novo</button>
               <button id="btn-menu" className="btn btn-ghost">Menu</button>
             </div>
           </section>
 
+          <div id="room-countdown" className="room-countdown hidden" aria-live="assertive"></div>
           <div id="toast" className="toast hidden"></div>
 
     </div>

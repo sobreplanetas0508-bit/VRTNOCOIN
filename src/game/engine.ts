@@ -1,6 +1,7 @@
 // @ts-nocheck -- ported verbatim from the original game; written for a looser TypeScript config.
 import * as THREE from "three";
 import { createCharacter, animateRig, type CharacterRig } from "./characters";
+import { normalizeTimerSpeed } from "./rules";
 
 const LANES = [-2.2, 0, 2.2];
 const SPAWN_Z = -120;
@@ -395,7 +396,7 @@ export class Game {
     this.scene.add(this.rig.root);
   }
 
-  setTimerMultiplier(value: number) { this.timerMultiplier = value === 1.5 ? 1.5 : 1; }
+  setTimerMultiplier(value: number) { this.timerMultiplier = normalizeTimerSpeed(value); }
 
   get currentSkin() {
     return this.skinId;

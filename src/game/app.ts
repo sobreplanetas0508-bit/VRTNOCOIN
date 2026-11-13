@@ -1,7 +1,9 @@
 // @ts-nocheck -- ported verbatim from the original game; written for a looser TypeScript config.
 import { Game, type RunResult } from "./engine";
-import { api, formatTime, ApiError, type PlayerData, type LeaderboardEntry } from "./api";
+import { api, formatTime, ApiError, type PlayerData, type LeaderboardEntry, type RoomState, type OpenRoom } from "./api";
 import { SKINS, LEADERBOARD_SIZE } from "./skins";
+import { playerTags, OWNER_TAG, ROOM_MIN_PLAYERS } from "./rules";
+import { RoomSync, type RaceProgress } from "./room-sync";
 
 let started = false;
 
@@ -30,6 +32,21 @@ let rank: number | null = null;
 let previewSkin: string | null = null;
 let activeTab = "play";
 
+// Multiplayer room state
+let room: RoomState | null = null;
+let inRoomRace = false;
+let raceSeen = 0;
+let raceId = 0;
+const live = new Map<string, RaceProgress>();
+const sync = new RoomSync(
+  () => void refreshRoom(),
+  (p) => {
+    if (!inRoomRace || p.raceId !== raceId) return;
+    live.set(p.id, p);
+    renderLive();
+  },
+);
+
 // ------------------------------------------------------------------ toast
 let toastTimer = 0;
 function toast(msg: string, kind: "ok" | "err" = "ok") {
@@ -48,8 +65,9 @@ const hudCoins = $("#hud-coins");
 const coinAlert = $("#coin-alert");
 
 const game = new Game($<HTMLCanvasElement>("#game"), {
-  onTick({ noCoinMs }) {
+  onTick({ noCoinMs, frozen }) {
     timerValue.textContent = formatTime(noCoinMs);
+    if (inRoomRace) reportProgress(noCoinMs, frozen, false);
   },
   onFirstCoin() {
     timerEl.classList.add("frozen");
@@ -64,12 +82,13 @@ const game = new Game($<HTMLCanvasElement>("#game"), {
     hudCoins.parentElement!.classList.add("bump");
   },
   onGameOver(r) {
+    if (inRoomRace) reportProgress(r.noCoinMs, true, true, true);
     void finishRun(r);
   },
 });
 
-async function startRun() {
-  if (!player) return;
+async function startRun(): Promise<boolean> {
+  if (!player) return false;
   const btns = [$<HTMLButtonElement>("#btn-play"), $<HTMLButtonElement>("#btn-again")];
   btns.forEach((b) => (b.disabled = true));
   try {
@@ -79,7 +98,7 @@ async function startRun() {
   } catch (e) {
     toast(errMsg(e), "err");
     if (e instanceof ApiError && e.status === 401) logout();
-    return;
+    return false;
   } finally {
     btns.forEach((b) => (b.disabled = false));
   }
@@ -95,7 +114,13 @@ async function startRun() {
   hint.classList.remove("fade");
   void hint.offsetWidth;
   hint.classList.add("fade");
+  show($("#room-live"), inRoomRace);
+  show($("#over-room"), inRoomRace);
+  show($("#btn-room"), inRoomRace);
+  show($("#btn-again"), !inRoomRace);
+  renderLive();
   game.start();
+  return true;
 }
 
 async function finishRun(r: RunResult) {
@@ -121,6 +146,7 @@ async function finishRun(r: RunResult) {
       $("#over-msg").textContent = `Seu recorde: ${formatTime(player.bestTimeMs)}`;
     }
     renderPlayer();
+    if (inRoomRace) void refreshRoom();
   } catch (e) {
     $("#over-msg").textContent = errMsg(e);
     $("#over-msg").className = "form-msg err";
@@ -128,9 +154,23 @@ async function finishRun(r: RunResult) {
   }
 }
 
-$("#btn-play").addEventListener("click", startRun);
-$("#btn-again").addEventListener("click", startRun);
-$("#btn-menu").addEventListener("click", () => openMenu());
+$("#btn-play").addEventListener("click", () => {
+  inRoomRace = false;
+  void startRun();
+});
+$("#btn-again").addEventListener("click", () => {
+  inRoomRace = false;
+  void startRun();
+});
+$("#btn-menu").addEventListener("click", () => {
+  inRoomRace = false;
+  openMenu();
+});
+$("#btn-room").addEventListener("click", () => {
+  inRoomRace = false;
+  activeTab = "rooms";
+  openMenu();
+});
 $("#btn-pause").addEventListener("click", pause);
 $("#btn-resume").addEventListener("click", resume);
 $("#btn-quit").addEventListener("click", () => {
@@ -185,6 +225,7 @@ $("#auth-form").addEventListener("submit", async (e) => {
     toast(authMode === "register" ? `Bem-vindo, ${player.username}!` : `Olá de novo, ${player.username}!`);
     await refreshMe();
     openMenu();
+    void refreshRoom();
   } catch (err) {
     $("#auth-error").textContent = errMsg(err);
   } finally {
@@ -195,6 +236,9 @@ $("#auth-form").addEventListener("submit", async (e) => {
 function logout() {
   void api.logout().catch(() => {});
   player = null;
+  room = null;
+  inRoomRace = false;
+  sync.watch(null);
   game.toIdle();
   showScreen("auth");
 }
@@ -220,6 +264,7 @@ function openMenu() {
 function renderPlayer() {
   if (!player) return;
   $("#me-name").textContent = player.username;
+  $("#me-tags").innerHTML = tagsHtml(player);
   $("#me-best").textContent = formatTime(player.bestTimeMs);
   $("#me-rank").textContent = rank ? `#${rank}` : "—";
   $("#me-coins").textContent = String(player.coins);
@@ -233,13 +278,14 @@ document.querySelectorAll<HTMLButtonElement>(".tab").forEach((t) =>
 function setTab(tab: string) {
   activeTab = tab;
   document.querySelectorAll<HTMLButtonElement>(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
-  for (const id of ["play", "skins", "codes", "ranking", "admin"]) show($(`#tab-${id}`), id === tab);
+  for (const id of ["play", "skins", "codes", "rooms", "ranking", "admin"]) show($(`#tab-${id}`), id === tab);
   if (tab !== "skins" && previewSkin && player) {
     previewSkin = null;
     game.setSkin(player.selectedSkin);
     renderSkins();
   }
   if (tab === "ranking") void loadRanking();
+  if (tab === "rooms") void refreshRoom();
 }
 
 // ------------------------------------------------------------------ skins
@@ -379,7 +425,7 @@ function renderRanking(entries: LeaderboardEntry[]) {
       return `<li class="rank-row${pos <= 3 ? ` top top-${pos}` : ""}${me ? " me" : ""}">
         <span class="rank-pos">${pos}</span>
         <span class="rank-dot skin-${escapeHtml(e.skin)}"></span>
-        <span class="rank-name">${escapeHtml(e.username)}<small>${escapeHtml(SKIN_NAMES[e.skin] ?? "")}</small></span>
+        <span class="rank-name"><span class="rank-line"><span class="rank-nick">${escapeHtml(e.username)}</span>${tagsHtml(e)}</span><small>${escapeHtml(SKIN_NAMES[e.skin] ?? "")}</small></span>
         <span class="rank-time">${formatTime(e.bestTimeMs)}</span>
       </li>`;
     })
@@ -391,6 +437,11 @@ $("#btn-refresh-rank").addEventListener("click", () => void loadRanking());
 function errMsg(e: unknown) {
   return e instanceof Error ? e.message : "Algo deu errado.";
 }
+function tagsHtml(p: { influencer?: boolean; owner?: boolean }) {
+  return playerTags(p)
+    .map((t) => `<span class="ptag ${t === OWNER_TAG ? "ptag-owner" : "ptag-influencer"}">${t}</span>`)
+    .join("");
+}
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
@@ -401,6 +452,7 @@ function escapeHtml(s: string) {
     try {
       await refreshMe();
       openMenu();
+      void refreshRoom();
       return;
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) void api.logout().catch(() => {});
@@ -436,5 +488,271 @@ for (const [id, enabled] of [["#admin-influencer-on", true], ["#admin-influencer
 }
 $("#admin-timer-normal").addEventListener("click", () => void adminAction("timer", { multiplier: 1 }));
 $("#admin-timer-fast").addEventListener("click", () => void adminAction("timer", { multiplier: 1.5 }));
+$("#admin-timer-double").addEventListener("click", () => void adminAction("timer", { multiplier: 2 }));
+
+// ------------------------------------------------------------------ rooms (multiplayer)
+function isMenuOpen() {
+  return !screens.menu.classList.contains("hidden");
+}
+
+async function refreshRoom() {
+  if (!player) return;
+  try {
+    room = await api.myRoom();
+  } catch (e) {
+    if (activeTab === "rooms" && isMenuOpen()) toast(errMsg(e), "err");
+    return;
+  }
+  sync.watch(room?.room.id ?? null);
+  renderRoom();
+  maybeStartRace();
+}
+
+function renderRoom() {
+  show($("#room-lobby"), !room);
+  show($("#room-view"), !!room);
+  if (!room) {
+    if (activeTab === "rooms") void loadOpenRooms();
+    return;
+  }
+  const r = room.room;
+  const isHost = !!player && r.hostId === player.id;
+  const host = room.players.find((p) => p.id === r.hostId);
+  $("#room-host").innerHTML = `${escapeHtml(r.hostName)}${host ? tagsHtml(host) : ""}`;
+  $("#room-code-value").textContent = r.code;
+  const n = room.players.length;
+  const results = room.players.filter((p) => r.raceId > 0 && p.lastRaceId === r.raceId && p.lastTimeMs !== null);
+  let status: string;
+  if (r.status === "racing") {
+    const left = room.players.filter((p) => p.racing).length;
+    status = `Corrida em andamento… faltam ${left} jogador${left === 1 ? "" : "es"} terminar.`;
+  } else if (n < ROOM_MIN_PLAYERS) {
+    status = `${n}/${r.maxPlayers} jogadores · Passe o código ${r.code} para seu amigo entrar.`;
+  } else {
+    status = `${n}/${r.maxPlayers} jogadores · ${isHost ? "Você é o dono da sala: comece quando todos estiverem prontos." : "Esperando o dono da sala começar."}`;
+  }
+  $("#room-status").textContent = status;
+
+  const sorted = [...room.players];
+  if (results.length) {
+    sorted.sort((a, b) => (b.lastRaceId === r.raceId ? b.lastTimeMs ?? -1 : -1) - (a.lastRaceId === r.raceId ? a.lastTimeMs ?? -1 : -1));
+  }
+  const bestMs = results.length ? Math.max(...results.map((p) => p.lastTimeMs!)) : -1;
+  $("#room-players").innerHTML = sorted
+    .map((p) => {
+      const has = p.lastRaceId === r.raceId && p.lastTimeMs !== null && r.raceId > 0;
+      const win = has && r.status === "waiting" && p.lastTimeMs === bestMs;
+      const right = p.racing && r.status === "racing" ? "correndo…" : has ? formatTime(p.lastTimeMs!) : "";
+      return `<li class="rank-row${p.id === player?.id ? " me" : ""}${win ? " top top-1" : ""}">
+        <span class="rank-pos">${win ? "🏆" : p.id === r.hostId ? "👑" : "•"}</span>
+        <span class="rank-dot skin-${escapeHtml(p.skin)}"></span>
+        <span class="rank-name"><span class="rank-line"><span class="rank-nick">${escapeHtml(p.username)}</span>${tagsHtml(p)}</span><small>${p.id === r.hostId ? "Dono da sala" : escapeHtml(SKIN_NAMES[p.skin] ?? "")}</small></span>
+        <span class="rank-time">${right}</span>
+      </li>`;
+    })
+    .join("");
+
+  const start = $<HTMLButtonElement>("#room-start");
+  show(start, isHost && r.status === "waiting");
+  start.disabled = n < ROOM_MIN_PLAYERS;
+  start.textContent = n < ROOM_MIN_PLAYERS ? "Esperando jogadores…" : results.length ? "Revanche!" : "Começar corrida";
+  show($("#room-end"), isHost && r.status === "racing");
+
+  // Result line on the game-over screen
+  if (inRoomRace) {
+    const msg = $("#over-room-msg");
+    if (r.status === "waiting" && results.length) {
+      const winners = results.filter((p) => p.lastTimeMs === bestMs).map((p) => p.username);
+      msg.textContent = winners.includes(player?.username ?? "") ? "🏆 Você venceu a corrida da sala!" : `🏆 Vencedor: ${winners.join(", ")}`;
+      msg.className = "form-msg ok";
+      for (const p of results) {
+        live.set(p.id, { id: p.id, username: p.username, raceId: r.raceId, ms: p.lastTimeMs!, frozen: true, done: true });
+      }
+      renderLive();
+    } else {
+      msg.textContent = "Esperando os outros jogadores terminarem…";
+      msg.className = "form-msg";
+    }
+  }
+}
+
+async function loadOpenRooms() {
+  const list = $("#room-list");
+  if (!list.children.length) list.innerHTML = `<li class="rank-empty">Procurando salas…</li>`;
+  let rooms: OpenRoom[];
+  try {
+    rooms = await api.openRooms();
+  } catch (e) {
+    list.innerHTML = `<li class="rank-empty">${escapeHtml(errMsg(e))}</li>`;
+    return;
+  }
+  if (!rooms.length) {
+    list.innerHTML = `<li class="rank-empty">Nenhuma sala aberta agora. Crie a sua!</li>`;
+    return;
+  }
+  list.innerHTML = rooms
+    .map((o) => {
+      const full = o.players >= o.maxPlayers;
+      const label = o.status === "racing" ? "Correndo" : full ? "Cheia" : "Entrar";
+      return `<li class="rank-row room-row">
+        <span class="rank-pos">${o.players}/${o.maxPlayers}</span>
+        <span class="rank-name"><small>Sala de</small><span class="rank-line"><span class="rank-nick">${escapeHtml(o.hostName)}</span>${tagsHtml({ influencer: o.hostInfluencer, owner: o.hostOwner })}</span></span>
+        <button class="btn btn-sm ${o.status === "racing" || full ? "btn-ghost" : "btn-primary"}" data-join="${escapeHtml(o.code)}"${o.status === "racing" || full ? " disabled" : ""}>${label}</button>
+      </li>`;
+    })
+    .join("");
+}
+
+$("#room-list").addEventListener("click", (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-join]");
+  if (btn) void joinRoom(btn.dataset.join!);
+});
+
+async function joinRoom(code: string) {
+  if (!code.trim()) return;
+  try {
+    room = await api.joinRoom(code);
+    $<HTMLInputElement>("#room-code").value = "";
+    sync.watch(room.room.id);
+    renderRoom();
+    toast(`Você entrou na sala de ${room.room.hostName}!`);
+  } catch (e) {
+    toast(errMsg(e), "err");
+    void loadOpenRooms();
+  }
+}
+
+$("#room-join-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  void joinRoom($<HTMLInputElement>("#room-code").value);
+});
+$("#room-refresh").addEventListener("click", () => void loadOpenRooms());
+
+$("#room-create").addEventListener("click", async () => {
+  const btn = $<HTMLButtonElement>("#room-create");
+  btn.disabled = true;
+  try {
+    room = await api.createRoom(Number($<HTMLSelectElement>("#room-max").value), $<HTMLInputElement>("#room-public").checked);
+    sync.watch(room.room.id);
+    renderRoom();
+    toast(`Sala criada! Código: ${room.room.code}`);
+  } catch (e) {
+    toast(errMsg(e), "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("#room-leave").addEventListener("click", async () => {
+  try {
+    await api.leaveRoom();
+    room = null;
+    sync.watch(null);
+    $("#room-list").innerHTML = "";
+    renderRoom();
+  } catch (e) {
+    toast(errMsg(e), "err");
+  }
+});
+
+$("#room-start").addEventListener("click", async () => {
+  const btn = $<HTMLButtonElement>("#room-start");
+  btn.disabled = true;
+  try {
+    room = await api.startRoomRace();
+    renderRoom();
+    maybeStartRace();
+  } catch (e) {
+    toast(errMsg(e), "err");
+    btn.disabled = false;
+  }
+});
+
+$("#room-end").addEventListener("click", async () => {
+  try {
+    room = await api.endRoomRace();
+    renderRoom();
+  } catch (e) {
+    toast(errMsg(e), "err");
+  }
+});
+
+$("#room-code-copy").addEventListener("click", async () => {
+  if (!room) return;
+  try {
+    await navigator.clipboard.writeText(room.room.code);
+    toast("Código copiado!");
+  } catch {
+    toast(`Código da sala: ${room.room.code}`);
+  }
+});
+
+// A race starts for everyone in the room when the host presses "Começar corrida".
+function maybeStartRace() {
+  if (!room || !player || room.room.status !== "racing") return;
+  const me = room.players.find((p) => p.id === player!.id);
+  if (!me?.racing || room.room.raceId === raceSeen) return;
+  raceSeen = room.room.raceId;
+  void beginRoomRace(room);
+}
+
+async function beginRoomRace(state: RoomState) {
+  if (game.isRunning || game.isPaused) game.toIdle();
+  inRoomRace = true;
+  raceId = state.room.raceId;
+  live.clear();
+  for (const p of state.players.filter((x) => x.racing)) {
+    live.set(p.id, { id: p.id, username: p.username, raceId, ms: 0, frozen: false, done: false });
+  }
+  $("#over-room-list").innerHTML = "";
+  showScreen("none");
+  show($("#hud"), false);
+  const cd = $("#room-countdown");
+  for (const t of ["3", "2", "1", "JÁ!"]) {
+    cd.textContent = t;
+    show(cd);
+    cd.classList.remove("pop");
+    void cd.offsetWidth;
+    cd.classList.add("pop");
+    await new Promise((res) => setTimeout(res, t === "JÁ!" ? 450 : 800));
+  }
+  show(cd, false);
+  if (!(await startRun())) {
+    inRoomRace = false;
+    openMenu();
+  }
+}
+
+let lastSent = 0;
+function reportProgress(ms: number, frozen: boolean, done: boolean, force = false) {
+  if (!player) return;
+  const now = performance.now();
+  const mine = { id: player.id, username: player.username, raceId, ms: Math.floor(ms), frozen, done };
+  live.set(player.id, mine);
+  if (!force && now - lastSent < 500) return;
+  lastSent = now;
+  sync.send(mine);
+  renderLive();
+}
+
+function renderLive() {
+  const rows = [...live.values()].sort((a, b) => b.ms - a.ms);
+  const html = rows
+    .map((p, i) => {
+      const me = p.id === player?.id;
+      const state = p.done ? "🏁" : p.frozen ? "🪙" : "🏃";
+      return `<li class="${me ? "me" : ""}${p.done ? " done" : ""}"><span class="live-pos">${i + 1}</span><span class="live-name">${escapeHtml(p.username)}</span><span class="live-state">${state}</span><span class="live-time">${formatTime(p.ms)}</span></li>`;
+    })
+    .join("");
+  $("#room-live").innerHTML = html;
+  $("#over-room-list").innerHTML = html;
+}
+
+// Safety net in case a live update is missed: re-check the room every few seconds.
+window.setInterval(() => {
+  if (!player || game.isRunning || game.isPaused) return;
+  if (activeTab === "rooms" && isMenuOpen()) void refreshRoom();
+  else if (room && (isMenuOpen() || inRoomRace)) void refreshRoom();
+}, 5000);
 
 }

@@ -11,6 +11,7 @@ export interface PlayerData {
   selectedSkin: string;
   bestTimeMs: number;
   influencer?: boolean;
+  owner?: boolean;
 }
 
 export interface LeaderboardEntry {
@@ -18,6 +19,44 @@ export interface LeaderboardEntry {
   bestTimeMs: number;
   skin: string;
   influencer?: boolean;
+  owner?: boolean;
+}
+
+export interface RoomPlayer {
+  id: string;
+  username: string;
+  skin: string;
+  influencer: boolean;
+  owner: boolean;
+  racing: boolean;
+  lastRaceId: number | null;
+  lastTimeMs: number | null;
+  lastCoins: number | null;
+}
+
+export interface RoomState {
+  room: {
+    id: string;
+    code: string;
+    hostId: string;
+    hostName: string;
+    isPublic: boolean;
+    maxPlayers: number;
+    status: "waiting" | "racing";
+    raceId: number;
+    startedAt: string | null;
+  };
+  players: RoomPlayer[];
+}
+
+export interface OpenRoom {
+  code: string;
+  hostName: string;
+  hostInfluencer: boolean;
+  hostOwner: boolean;
+  players: number;
+  maxPlayers: number;
+  status: "waiting" | "racing";
 }
 
 export class ApiError extends Error {
@@ -84,15 +123,16 @@ export const api = {
   },
   me: () => rpc<MeRes>("get_me"),
   leaderboard: async () => {
-    const rows = await rpc<{ username: string; best_time_ms: number; skin: string; influencer: boolean }[]>(
-      "get_leaderboard",
-    );
+    const rows = await rpc<
+      { username: string; best_time_ms: number; skin: string; influencer: boolean; owner: boolean }[]
+    >("get_leaderboard");
     return {
       entries: (rows ?? []).map((r) => ({
         username: r.username,
         bestTimeMs: r.best_time_ms,
         skin: r.skin,
         influencer: r.influencer,
+        owner: r.owner,
       })) as LeaderboardEntry[],
     };
   },
@@ -112,6 +152,37 @@ export const api = {
     const res = await rpc<PlayerRes & { unlocked: string }>("redeem_code", { p_code: code });
     return { ...res, unlocked: SKINS.find((s) => s.id === res.unlocked)?.name ?? res.unlocked };
   },
+  myRoom: () => rpc<RoomState | null>("get_my_room"),
+  openRooms: async () => {
+    const rows = await rpc<
+      {
+        code: string;
+        host_name: string;
+        host_influencer: boolean;
+        host_owner: boolean;
+        players: number;
+        max_players: number;
+        status: "waiting" | "racing";
+      }[]
+    >("list_open_rooms");
+    return (rows ?? []).map(
+      (r): OpenRoom => ({
+        code: r.code,
+        hostName: r.host_name,
+        hostInfluencer: r.host_influencer,
+        hostOwner: r.host_owner,
+        players: r.players,
+        maxPlayers: r.max_players,
+        status: r.status,
+      }),
+    );
+  },
+  createRoom: (maxPlayers: number, isPublic: boolean) =>
+    rpc<RoomState>("create_room", { p_max_players: maxPlayers, p_public: isPublic }),
+  joinRoom: (code: string) => rpc<RoomState>("join_room", { p_code: code }),
+  leaveRoom: () => rpc<null>("leave_room"),
+  startRoomRace: () => rpc<RoomState>("start_room_race"),
+  endRoomRace: () => rpc<RoomState>("end_room_race"),
 };
 
 export function formatTime(ms: number) {

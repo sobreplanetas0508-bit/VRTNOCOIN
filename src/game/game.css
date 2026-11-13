@@ -338,7 +338,7 @@ input {
 }
 .tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 12px;
@@ -801,5 +801,233 @@ input {
   }
   .hud-coins {
     font-size: 16px;
+  }
+}
+
+/* ---------- player tags ---------- */
+.ptag {
+  flex: none;
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  vertical-align: 2px;
+}
+.ptag-influencer {
+  background: linear-gradient(90deg, var(--g-hot), #ff8a3d);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(255, 77, 109, 0.45);
+}
+.ptag-owner {
+  background: linear-gradient(90deg, var(--g-gold), var(--g-sun));
+  color: var(--g-ink);
+  box-shadow: 0 0 14px rgba(255, 195, 0, 0.55);
+}
+.rank-line {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.rank-nick {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.rank-line .ptag {
+  margin-left: 6px;
+}
+
+/* ---------- rooms ---------- */
+.room-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 10px;
+}
+.room-create {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  min-width: 200px;
+}
+.room-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--g-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.room-field select {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: none;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--g-paper);
+}
+.room-field select option {
+  color: var(--g-ink);
+}
+.room-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--g-muted);
+  cursor: pointer;
+}
+.room-join {
+  margin-bottom: 14px;
+}
+.room-row {
+  grid-template-columns: 44px 1fr auto;
+}
+.room-row .rank-pos {
+  font-size: 13px;
+}
+.room-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.room-title {
+  display: flex;
+  flex-direction: column;
+  font-weight: 800;
+  font-size: 18px;
+  min-width: 0;
+}
+.room-code {
+  border: 2px dashed var(--g-teal);
+  background: rgba(46, 196, 182, 0.1);
+  color: var(--g-paper);
+  border-radius: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+  text-align: center;
+}
+#room-code-value {
+  display: block;
+  font-family: var(--g-display);
+  font-size: 24px;
+  letter-spacing: 0.14em;
+}
+.room-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* live race board in the HUD */
+.room-live {
+  position: absolute;
+  top: calc(max(20px, env(safe-area-inset-top)) + 56px);
+  right: 14px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  width: min(44vw, 230px);
+  border-radius: 14px;
+  background: rgba(27, 21, 48, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+}
+.room-live li,
+#over-room-list li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 8px;
+}
+.room-live li.me,
+#over-room-list li.me {
+  background: rgba(46, 196, 182, 0.22);
+}
+.live-pos {
+  font-family: var(--g-display);
+  color: var(--g-muted);
+}
+.live-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.live-time {
+  font-family: var(--g-display);
+  font-variant-numeric: tabular-nums;
+}
+.over-room {
+  text-align: left;
+}
+.over-room .form-msg {
+  margin-bottom: 6px;
+}
+#over-room-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+.room-countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--g-display);
+  font-size: clamp(80px, 22vw, 200px);
+  color: var(--g-sun);
+  text-shadow: 5px 5px 0 var(--g-hot), 10px 10px 0 rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+.room-countdown.pop {
+  animation: count-pop 0.6s ease;
+}
+@keyframes count-pop {
+  from {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@media (max-width: 600px) {
+  .room-live {
+    top: auto;
+    bottom: 64px;
+    right: 8px;
+    font-size: 12px;
   }
 }
