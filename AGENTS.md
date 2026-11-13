@@ -28,3 +28,13 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- The game (3D engine, characters, menus) lives in `src/game/` as framework-free TypeScript that drives the DOM rendered by `src/routes/index.tsx`; `initApp()` is loaded with a dynamic import after hydration because the engine needs WebGL and the browser.
+- Keep React from re-rendering the game markup with changing props: `src/game/app.ts` toggles classes and injects lists directly, and a React diff would undo that.
+- Game rules that affect coins, records and unlocks run in database functions bound to `auth.uid()` (`start_run`, `finish_run`, `buy_skin`, `select_skin`, `redeem_code`); clients have read-only access to their own profile so they cannot edit coins or records directly.
+- Redeem codes live only in the `redeem_codes` table (no client access) so they never ship in the browser bundle.
+- Accounts are nickname-only: the auth email is derived from the nickname in `src/lib/player-account.ts`, and accounts are created confirmed by the `registerPlayer` server function. Never change that derivation without migrating existing accounts.
+- Admin panel actions are server functions checked against the `ADMIN_PASSWORD` secret; admin-only database functions are executable only by the service role.
+- Tailwind is loaded without its base reset (preflight) because the game stylesheet relies on browser defaults; game CSS variables use a `--g-` prefix to avoid clashing with theme tokens.
