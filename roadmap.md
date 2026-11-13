@@ -7,3 +7,5 @@
 - [x] Choose scope: whole server (changes everyone's timer) or only me (VRTnocoin)
 - [x] Make timer speeds work clearly (status + HUD badge), tested
 - [x] Jump a little higher (small increase)
+- [x] Timer 3x only for player xw7
+- [x] Global chat: any signed-in player can send/read messages live

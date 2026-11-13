@@ -4,6 +4,7 @@ import { api, formatTime, ApiError, type PlayerData, type LeaderboardEntry, type
 import { SKINS, LEADERBOARD_SIZE } from "./skins";
 import { playerTags, OWNER_TAG, ROOM_MIN_PLAYERS, formatSpeed, normalizeTimerSpeed } from "./rules";
 import { RoomSync, type RaceProgress } from "./room-sync";
+import { ChatSync, loadChat, sendChat, type ChatMessage } from "./chat";
 
 let started = false;
 
@@ -242,6 +243,7 @@ function logout() {
   room = null;
   inRoomRace = false;
   sync.watch(null);
+  stopChat();
   game.toIdle();
   showScreen("auth");
 }
@@ -262,6 +264,7 @@ function openMenu() {
   renderPlayer();
   setTab(activeTab);
   showScreen("menu");
+  startChat();
 }
 
 function renderPlayer() {
@@ -281,7 +284,7 @@ document.querySelectorAll<HTMLButtonElement>(".tab").forEach((t) =>
 function setTab(tab: string) {
   activeTab = tab;
   document.querySelectorAll<HTMLButtonElement>(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
-  for (const id of ["play", "skins", "codes", "rooms", "ranking", "admin"]) show($(`#tab-${id}`), id === tab);
+  for (const id of ["play", "skins", "codes", "rooms", "chat", "ranking", "admin"]) show($(`#tab-${id}`), id === tab);
   if (tab !== "skins" && previewSkin && player) {
     previewSkin = null;
     game.setSkin(player.selectedSkin);
@@ -289,6 +292,13 @@ function setTab(tab: string) {
   }
   if (tab === "ranking") void loadRanking();
   if (tab === "rooms") void refreshRoom();
+  $("#screen-menu .menu-panel").classList.toggle("chat-open", tab === "chat");
+  if (tab === "chat") {
+    chatUnread = false;
+    renderChatBadge();
+    scrollChat(true);
+    if (!chatLoaded) void reloadChat();
+  }
 }
 
 // ------------------------------------------------------------------ skins
@@ -435,6 +445,97 @@ function renderRanking(entries: LeaderboardEntry[]) {
     .join("");
 }
 $("#btn-refresh-rank").addEventListener("click", () => void loadRanking());
+
+// ------------------------------------------------------------------ global chat
+const chatMessages = new Map<number, ChatMessage>();
+let chatLoaded = false;
+let chatUnread = false;
+const chatSync = new ChatSync((m) => addChat([m]));
+
+function startChat() {
+  chatSync.start();
+  if (!chatLoaded) void reloadChat();
+}
+function stopChat() {
+  chatSync.stop();
+  chatMessages.clear();
+  chatLoaded = false;
+  chatUnread = false;
+  $("#chat-list").innerHTML = "";
+  renderChatBadge();
+}
+async function reloadChat() {
+  try {
+    const msgs = await loadChat();
+    chatLoaded = true;
+    addChat(msgs, true);
+  } catch (e) {
+    if (!chatMessages.size) $("#chat-list").innerHTML = `<li class="rank-empty">${escapeHtml(errMsg(e))}</li>`;
+  }
+}
+function addChat(msgs: ChatMessage[], initial = false) {
+  let fresh = false;
+  for (const m of msgs) {
+    if (chatMessages.has(m.id)) continue;
+    chatMessages.set(m.id, m);
+    if (!initial && m.playerId !== player?.id) fresh = true;
+  }
+  // Keep the newest 100 on screen.
+  const ids = [...chatMessages.keys()].sort((a, b) => a - b);
+  for (const id of ids.slice(0, Math.max(0, ids.length - 100))) chatMessages.delete(id);
+  renderChat();
+  if (fresh && !(activeTab === "chat" && isMenuOpen())) {
+    chatUnread = true;
+    renderChatBadge();
+  }
+}
+function renderChatBadge() {
+  document.querySelector('.tab[data-tab="chat"]')?.classList.toggle("has-unread", chatUnread);
+}
+function chatTime(iso: string) {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+function renderChat() {
+  const list = $("#chat-list");
+  const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
+  const msgs = [...chatMessages.values()].sort((a, b) => a.id - b.id);
+  list.innerHTML = msgs.length
+    ? msgs
+        .map((m) => {
+          const me = m.playerId === player?.id;
+          return `<li class="chat-msg${me ? " me" : ""}">
+        <div class="chat-meta"><span class="rank-line"><span class="rank-nick">${escapeHtml(m.username)}</span>${tagsHtml(m)}</span><time>${chatTime(m.createdAt)}</time></div>
+        <div class="chat-body">${escapeHtml(m.body)}</div>
+      </li>`;
+        })
+        .join("")
+    : `<li class="rank-empty">Nenhuma mensagem ainda. Diga oi para todo mundo!</li>`;
+  scrollChat(nearBottom);
+}
+function scrollChat(force: boolean) {
+  const list = $("#chat-list");
+  if (force) requestAnimationFrame(() => (list.scrollTop = list.scrollHeight));
+}
+$("#chat-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const input = $<HTMLInputElement>("#chat-input");
+  const btn = $<HTMLButtonElement>("#chat-send");
+  const text = input.value.trim();
+  if (!text || btn.disabled) return;
+  btn.disabled = true;
+  try {
+    const m = await sendChat(text);
+    input.value = "";
+    addChat([m]);
+    scrollChat(true);
+  } catch (e) {
+    toast(errMsg(e), "err");
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
+});
 
 // ------------------------------------------------------------------ utils
 function errMsg(e: unknown) {

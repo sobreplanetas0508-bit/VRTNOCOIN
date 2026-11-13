@@ -349,7 +349,7 @@ input {
 }
 .tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 12px;
@@ -357,8 +357,91 @@ input {
   margin: 16px 0 14px;
 }
 .tab {
-  font-size: 13px;
-  padding: 9px 4px;
+  font-size: 12px;
+  padding: 9px 2px;
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tab.has-unread::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--g-hot);
+  box-shadow: 0 0 8px var(--g-hot);
+}
+
+/* ---------- global chat ---------- */
+.chat-tab {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 260px;
+}
+.chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 2px 0 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chat-msg {
+  padding: 7px 11px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  max-width: 88%;
+  align-self: flex-start;
+}
+.chat-msg.me {
+  align-self: flex-end;
+  background: rgba(46, 196, 182, 0.18);
+}
+.chat-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--g-sun);
+}
+.chat-msg.me .chat-meta {
+  color: var(--g-teal);
+}
+.chat-meta time {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--g-muted);
+  font-size: 11px;
+}
+.chat-body {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.form.chat-form {
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 10px;
+}
+.chat-form input {
+  flex: 1;
+  min-width: 0;
+}
+.chat-form .btn {
+  width: auto;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 /* forms */
@@ -1040,5 +1123,19 @@ input {
     bottom: 64px;
     right: 8px;
     font-size: 12px;
+  }
+}
+
+/* Give the chat more room on small screens. */
+.menu-panel.chat-open {
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+}
+.menu-panel.chat-open .chat-tab {
+  min-height: 300px;
+}
+@media (max-height: 700px) {
+  .menu-panel.chat-open .stats {
+    display: none;
   }
 }

@@ -93,6 +93,7 @@ function Index() {
                 <button className="tab" data-tab="skins">Personagens</button>
                 <button className="tab" data-tab="codes">Códigos</button>
                 <button className="tab" data-tab="rooms">Salas</button>
+                <button className="tab" data-tab="chat">Chat</button>
                 <button className="tab" data-tab="ranking">Ranking</button>
                 <button className="tab" data-tab="admin">ADM</button>
               </nav>
@@ -188,6 +189,14 @@ function Index() {
                     <button id="room-leave" className="btn btn-ghost">Sair da sala</button>
                   </div>
                 </div>
+              </div>
+              <div className="tab-body chat-tab hidden" id="tab-chat">
+                <div className="rank-head"><span>Chat global · todos os jogadores</span></div>
+                <ul className="chat-list" id="chat-list" aria-live="polite"></ul>
+                <form id="chat-form" className="form chat-form" autoComplete="off">
+                  <input id="chat-input" placeholder="Escreva uma mensagem…" maxLength={200} enterKeyHint="send" aria-label="Mensagem" />
+                  <button id="chat-send" className="btn btn-primary" type="submit">Enviar</button>
+                </form>
               </div>
               <div className="tab-body hidden" id="tab-ranking">
                 <div className="rank-head">

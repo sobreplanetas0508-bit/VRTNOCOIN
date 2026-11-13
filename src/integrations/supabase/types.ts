@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: number
+          influencer: boolean
+          owner: boolean
+          player_id: string
+          username: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: never
+          influencer?: boolean
+          owner?: boolean
+          player_id: string
+          username: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: never
+          influencer?: boolean
+          owner?: boolean
+          player_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_settings: {
         Row: {
           id: number
@@ -300,6 +338,7 @@ export type Database = {
       redeem_code: { Args: { p_code: string }; Returns: Json }
       room_remove_player: { Args: { p_player: string }; Returns: undefined }
       select_skin: { Args: { p_skin: string }; Returns: Json }
+      send_chat_message: { Args: { p_body: string }; Returns: Json }
       start_room_race: { Args: never; Returns: Json }
       start_run: { Args: never; Returns: undefined }
       username_taken: { Args: { p_username: string }; Returns: boolean }

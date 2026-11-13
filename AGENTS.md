@@ -38,3 +38,4 @@ use the editor.
 - Accounts are nickname-only: the auth email is derived from the nickname in `src/lib/player-account.ts`, and accounts are created confirmed by the `registerPlayer` server function. Never change that derivation without migrating existing accounts.
 - Admin panel actions are server functions checked against the `ADMIN_PASSWORD` secret; admin-only database functions are executable only by the service role.
 - Tailwind is loaded without its base reset (preflight) because the game stylesheet relies on browser defaults; game CSS variables use a `--g-` prefix to avoid clashing with theme tokens.
+- Global chat messages are only written by the `send_chat_message` database function (length limit, anti-spam delay, nickname/tags copied from the profile) so players cannot fake another nick; clients read them and get new ones over Realtime.
