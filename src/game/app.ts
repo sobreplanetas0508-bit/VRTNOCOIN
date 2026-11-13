@@ -620,6 +620,16 @@ async function setTimer(scope: "server" | "me") {
 }
 $("#admin-timer-server").addEventListener("click", () => void setTimer("server"));
 $("#admin-timer-me").addEventListener("click", () => void setTimer("me"));
+$("#admin-timer-player").addEventListener("click", async () => {
+  const username = $<HTMLInputElement>("#admin-timer-nick").value.trim();
+  if (!username) { toast("Digite o Nick do jogador.", "err"); return; }
+  const speed = adminSpeed;
+  try {
+    await api.admin("timer", adminPassword, { multiplier: speed, scope: "me", username });
+    toast(`Cronômetro ${formatSpeed(speed)} ativado só para ${username}!`);
+    void refreshTimerStatus();
+  } catch (e) { toast(errMsg(e), "err"); }
+});
 
 // ------------------------------------------------------------------ rooms (multiplayer)
 function isMenuOpen() {

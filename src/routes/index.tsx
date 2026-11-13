@@ -146,6 +146,8 @@ function Index() {
                   </div>
                   <button id="admin-timer-server" className="btn btn-primary">Ativar para o servidor inteiro</button>
                   <button id="admin-timer-me" className="btn btn-ghost">Ativar só para mim</button>
+                  <input id="admin-timer-nick" placeholder="Nick do jogador" />
+                  <button id="admin-timer-player" className="btn btn-ghost">Ativar só para esse jogador</button>
                 </div>
               </div>
               <div className="tab-body hidden" id="tab-rooms">
