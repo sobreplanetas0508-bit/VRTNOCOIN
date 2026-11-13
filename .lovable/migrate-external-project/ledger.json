@@ -1,0 +1,17 @@
+{
+  "source": "code-archive (Fuga dos Trilhos: Vite + Three.js frontend, Netlify Server/Hono API, Netlify Database Postgres via Drizzle)",
+  "capabilities": [
+    {"capability": "code: 3D runner game engine, characters, menus, HUD", "source": "src/game.ts, src/characters.ts, src/main.ts, index.html, src/style.css", "outcome": "migrate", "status": "pending", "next_action": "Port engine verbatim and mount screens in the / route"},
+    {"capability": "schema: players, sessions, game_settings", "source": "db/schema.ts + netlify/database/migrations", "outcome": "migrate", "status": "pending", "next_action": "Recreate players/game_settings in Lovable Cloud; sessions replaced by Cloud auth"},
+    {"capability": "records: existing players and settings", "source": "Netlify Database", "outcome": "migrate", "status": "pending", "next_action": "Request CSV/JSON export of players table after preview"},
+    {"capability": "auth identities: username + password accounts", "source": "custom scrypt auth in netlify/server/index.ts", "outcome": "migrate", "status": "pending", "next_action": "Replace with Lovable Cloud auth; decide nickname-only vs email sign-up"},
+    {"capability": "authorization: per-player actions, server-side anti-cheat clamps", "source": "/api/runs, /api/skins, /api/codes", "outcome": "migrate", "status": "pending", "next_action": "Recreate as database functions bound to the signed-in player"},
+    {"capability": "admin panel protected by ADMIN_PASSWORD", "source": "/api/admin/*", "outcome": "migrate", "status": "pending", "next_action": "Server functions checking ADMIN_PASSWORD secret; request secret before verification"},
+    {"capability": "public leaderboard + settings endpoints", "source": "/api/leaderboard, /api/settings", "outcome": "migrate", "status": "pending", "next_action": "Public read function for top 25"},
+    {"capability": "uploaded file bytes", "source": "none detected", "outcome": "not-applicable", "status": "verified", "next_action": "none"},
+    {"capability": "external providers / webhooks / schedules / callbacks", "source": "none detected", "outcome": "not-applicable", "status": "verified", "next_action": "none"},
+    {"capability": "secrets", "source": "ADMIN_PASSWORD", "outcome": "migrate", "status": "pending", "next_action": "Ask user to set ADMIN_PASSWORD via secure form"},
+    {"capability": "cutover", "source": "Netlify site", "outcome": "migrate", "status": "pending", "next_action": "Publish in Lovable, point domain if any"},
+    {"capability": "verification", "source": "-", "outcome": "migrate", "status": "pending", "next_action": "Build, sign up, run, buy, redeem, leaderboard, admin"}
+  ]
+}
