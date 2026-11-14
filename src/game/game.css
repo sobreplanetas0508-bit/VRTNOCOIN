@@ -145,7 +145,7 @@ input {
 }
 .hud-coins {
   position: absolute;
-  top: max(20px, env(safe-area-inset-top));
+  top: max(74px, calc(env(safe-area-inset-top) + 56px));
   right: 16px;
   display: flex;
   align-items: center;
@@ -169,7 +169,7 @@ input {
   width: 0.95em;
   height: 0.95em;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff3b0, var(--g-gold) 45%, var(--g-gold-dark));
+  background: radial-gradient(circle at 35% 30%, #fff3b0, var(--g-coin, var(--g-gold)) 45%, var(--g-coin-dark, var(--g-gold-dark)));
   box-shadow: inset 0 0 0 2px rgba(122, 74, 0, 0.45);
   vertical-align: -0.12em;
   flex: none;
@@ -710,6 +710,10 @@ input {
 .skin-cachorro {
   --sw: radial-gradient(circle at 70% 35%, #5c3a1e 0 18%, transparent 19%), linear-gradient(180deg, #a0673a 0 60%, #f3e2c7 60%);
 }
+.skin-subaru { --sw: linear-gradient(180deg, #0b0b0f 0 18%, #f97316 18% 24%, #1c1c22 24%); }
+.skin-yamal { --sw: linear-gradient(90deg, #a50044 0 20%, #004d98 20% 40%, #a50044 40% 60%, #004d98 60% 80%, #a50044 80%); }
+.skin-neymar { --sw: linear-gradient(180deg, #e8c77a 0 18%, #fde047 18% 65%, #1d4ed8 65%); }
+.skin-subaru .skin-swatch, .skin-yamal .skin-swatch, .skin-neymar .skin-swatch { background: var(--sw); }
 .skin-superman {
   --sw: linear-gradient(180deg, #14110f 0 18%, #1d4ed8 18% 70%, #ffd60a 70% 76%, #c1121f 76%);
 }
@@ -1138,4 +1142,43 @@ input {
   .menu-panel.chat-open .stats {
     display: none;
   }
+}
+
+/* ---------- settings ---------- */
+.coin-colors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.coin-color {
+  --g-coin: var(--c);
+  --g-coin-dark: var(--cd);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--g-paper);
+  border: 2px solid transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.coin-color.active {
+  border-color: var(--c);
+}
+.seg.speed-seg .seg-btn {
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 12px;
+}
+
+/* ---------- fullscreen ---------- */
+.hud-btn.fs-btn {
+  position: fixed;
+  left: auto;
+  right: 16px;
+  top: max(18px, env(safe-area-inset-top));
+  z-index: 50;
+  font-size: 22px;
 }

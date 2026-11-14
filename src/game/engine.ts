@@ -396,6 +396,11 @@ export class Game {
     this.scene.add(this.rig.root);
   }
 
+  setCoinColor(main: string, dark: string) {
+    this.coinMat.color.set(main);
+    this.coinMat.emissive.set(dark).multiplyScalar(0.6);
+  }
+
   setTimerMultiplier(value: number) { this.timerMultiplier = normalizeTimerSpeed(value); }
 
   get currentSkin() {

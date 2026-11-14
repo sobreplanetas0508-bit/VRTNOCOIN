@@ -4,6 +4,7 @@ import { api, formatTime, ApiError, type PlayerData, type LeaderboardEntry, type
 import { SKINS, LEADERBOARD_SIZE } from "./skins";
 import { playerTags, OWNER_TAG, ROOM_MIN_PLAYERS, formatSpeed, normalizeTimerSpeed } from "./rules";
 import { RoomSync, type RaceProgress } from "./room-sync";
+import { COIN_COLORS, coinColor, loadCoinColor, saveCoinColor } from "./settings";
 import { ChatSync, loadChat, sendChat, type ChatMessage } from "./chat";
 
 let started = false;
@@ -284,7 +285,7 @@ document.querySelectorAll<HTMLButtonElement>(".tab").forEach((t) =>
 function setTab(tab: string) {
   activeTab = tab;
   document.querySelectorAll<HTMLButtonElement>(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === tab));
-  for (const id of ["play", "skins", "codes", "rooms", "chat", "ranking", "admin"]) show($(`#tab-${id}`), id === tab);
+  for (const id of ["play", "skins", "codes", "rooms", "chat", "ranking", "admin", "config"]) show($(`#tab-${id}`), id === tab);
   if (tab !== "skins" && previewSkin && player) {
     previewSkin = null;
     game.setSkin(player.selectedSkin);
@@ -300,6 +301,45 @@ function setTab(tab: string) {
     if (!chatLoaded) void reloadChat();
   }
 }
+
+// ------------------------------------------------------------------ fullscreen
+type FsDoc = Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => Promise<void> };
+type FsEl = HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
+$("#btn-fullscreen").addEventListener("click", async () => {
+  const d = document as FsDoc;
+  const el = document.documentElement as FsEl;
+  try {
+    if (d.fullscreenElement || d.webkitFullscreenElement) {
+      await (d.exitFullscreen?.() ?? d.webkitExitFullscreen?.());
+      return;
+    }
+    if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: "hide" });
+    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+    else throw new Error("unsupported");
+    const o = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
+    await o?.lock?.("landscape").catch(() => undefined);
+  } catch {
+    toast("Seu navegador não deixa entrar em tela cheia. Gire o celular para jogar deitado.", "err");
+  }
+});
+
+// ------------------------------------------------------------------ settings
+function applyCoinColor(id: string) {
+  const c = coinColor(id);
+  document.documentElement.style.setProperty("--g-coin", c.main);
+  document.documentElement.style.setProperty("--g-coin-dark", c.dark);
+  game.setCoinColor(c.main, c.dark);
+  document.querySelectorAll<HTMLButtonElement>("#coin-colors [data-coin]").forEach((b) =>
+    b.classList.toggle("active", b.dataset.coin === c.id));
+}
+applyCoinColor(loadCoinColor().id);
+document.querySelectorAll<HTMLButtonElement>("#coin-colors [data-coin]").forEach((b) =>
+  b.addEventListener("click", () => {
+    const id = b.dataset.coin!;
+    saveCoinColor(id);
+    applyCoinColor(id);
+    toast(`Moeda ${COIN_COLORS.find((c) => c.id === id)?.name.toLowerCase()} ativada!`);
+  }));
 
 // ------------------------------------------------------------------ skins
 function renderSkins() {

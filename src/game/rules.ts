@@ -4,7 +4,7 @@ export const ROOM_MIN_PLAYERS = 2;
 export const ROOM_MAX_PLAYERS = 10;
 
 /** Timer speeds the ADM panel can choose. */
-export const TIMER_SPEEDS = [1, 1.5, 2, 3, 4, 5] as const;
+export const TIMER_SPEEDS = [1, 1.5, 2, 3, 4, 5, 10, 20, 30, 40, 50] as const;
 
 /** Where an ADM timer speed applies. */
 export type TimerScope = "server" | "me";

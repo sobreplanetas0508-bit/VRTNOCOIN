@@ -257,6 +257,73 @@ const customLooks: Record<string, [number,number,number,number]> = {
  samurai:[0x991b1b,0x1f2937,0x111827,0xf59e0b], alien:[0x16a34a,0x15803d,0x166534,0xa3e635],
  bombeiro:[0xdc2626,0x1f2937,0xfacc15,0xfacc15], galaxia:[0x312e81,0x1e1b4b,0x7c3aed,0x67e8f9]
 };
+function subaru(): CharacterRig {
+  // Black tracksuit with white/orange trim, spiky black hair
+  const rig = baseRig({ skin: 0xf1c9a5, shirt: 0x1c1c22, pants: 0x1c1c22, shoes: 0xf5f5f5, sleeves: 0x1c1c22 });
+  const { pivot } = rig;
+  pivot.add(box(0.04, 0.6, 0.02, 0xf5f5f5, 0, 0.22, -0.19)); // zipper
+  pivot.add(box(0.64, 0.07, 0.38, 0xf97316, 0, 0.5, 0)); // orange collar
+  pivot.add(box(0.64, 0.05, 0.38, 0xf5f5f5, 0, -0.08, 0)); // hem stripe
+  [rig.armL, rig.armR].forEach((a) => {
+    a.add(box(0.19, 0.08, 0.21, 0xf97316, 0, -0.44, 0));
+    a.add(box(0.19, 0.05, 0.21, 0xf5f5f5, 0, -0.04, 0));
+  });
+  [rig.legL, rig.legR].forEach((l) => l.add(box(0.25, 0.05, 0.27, 0xf97316, 0, -0.5, 0)));
+  pivot.add(box(0.46, 0.48, 0.44, 0xf1c9a5, 0, HEAD_Y, 0)); // head
+  pivot.add(box(0.48, 0.14, 0.46, 0x0b0b0f, 0, HEAD_Y + 0.25, 0.01)); // hair
+  [[-0.16, 0.06], [0, 0.1], [0.16, 0.06]].forEach(([x, y]) => {
+    const c = cone(0.08, 0.2, 0x0b0b0f, x, HEAD_Y + 0.33 + y * 0.3, -0.12);
+    c.rotation.x = -0.5;
+    pivot.add(c);
+  });
+  pivot.add(box(0.48, 0.1, 0.05, 0x0b0b0f, 0, HEAD_Y + 0.16, -0.22)); // bangs
+  pivot.add(box(0.09, 0.04, 0.02, 0x111111, -0.11, HEAD_Y + 0.04, -0.225)); // sharp eyes
+  pivot.add(box(0.09, 0.04, 0.02, 0x111111, 0.11, HEAD_Y + 0.04, -0.225));
+  pivot.add(box(0.12, 0.03, 0.02, 0x8a4b2a, 0, HEAD_Y - 0.12, -0.225));
+  return rig;
+}
+
+function footballer(o: {
+  skin: number; shirt: number; stripe: number | null; trim: number; shorts: number; socks: number;
+  boots: number; hair: number; hairTop: number; number: number;
+}): CharacterRig {
+  const rig = baseRig({ skin: o.skin, shirt: o.shirt, pants: o.shorts, shoes: o.boots, sleeves: o.shirt });
+  const { pivot } = rig;
+  if (o.stripe !== null) [-0.2, 0, 0.2].forEach((x) => pivot.add(box(0.1, 0.64, 0.38, o.stripe!, x, 0.22, 0)));
+  pivot.add(box(0.64, 0.06, 0.38, o.trim, 0, 0.52, 0)); // collar
+  [rig.armL, rig.armR].forEach((a) => {
+    a.add(box(0.19, 0.06, 0.21, o.trim, 0, -0.22, 0));
+    a.add(box(0.16, 0.22, 0.18, o.skin, 0, -0.38, 0)); // short sleeves: bare forearm
+  });
+  [rig.legL, rig.legR].forEach((l) => {
+    l.add(box(0.25, 0.3, 0.27, o.socks, 0, -0.48, 0));
+    l.add(box(0.245, 0.14, 0.265, o.skin, 0, -0.24, 0)); // knees below shorts
+  });
+  // Shirt number on the back (two bars = "10"/"19" style)
+  pivot.add(box(0.05, 0.26, 0.02, o.number, -0.08, 0.26, 0.19));
+  pivot.add(box(0.16, 0.26, 0.02, o.number, 0.07, 0.26, 0.19));
+  pivot.add(box(0.08, 0.18, 0.025, o.shirt, 0.07, 0.26, 0.195));
+  pivot.add(box(0.08, 0.08, 0.02, o.number, 0, 0.36, -0.19)); // badge
+  pivot.add(box(0.46, 0.48, 0.44, o.skin, 0, HEAD_Y, 0)); // head
+  pivot.add(box(0.48, 0.12, 0.46, o.hair, 0, HEAD_Y + 0.24, 0.01));
+  [[-0.14, 0], [0, 0.03], [0.14, 0], [-0.07, -0.1], [0.07, -0.1]].forEach(([x, z]) =>
+    pivot.add(ball(0.09, o.hairTop, x, HEAD_Y + 0.32, z, 6)),
+  );
+  pivot.add(box(0.07, 0.07, 0.02, 0x1a1a1a, -0.11, HEAD_Y + 0.04, -0.225));
+  pivot.add(box(0.07, 0.07, 0.02, 0x1a1a1a, 0.11, HEAD_Y + 0.04, -0.225));
+  pivot.add(box(0.16, 0.03, 0.02, 0x5a2e1a, 0, HEAD_Y - 0.12, -0.225));
+  return rig;
+}
+
+const yamal = () => footballer({
+  skin: 0xa86b45, shirt: 0xa50044, stripe: 0x004d98, trim: 0xfacc15, shorts: 0x0b2a6b, socks: 0x0b2a6b,
+  boots: 0xff4d00, hair: 0x120c08, hairTop: 0x1a120c, number: 0xfacc15,
+});
+const neymar = () => footballer({
+  skin: 0xc68e5e, shirt: 0xfde047, stripe: null, trim: 0x15803d, shorts: 0x1d4ed8, socks: 0xf5f5f5,
+  boots: 0xec4899, hair: 0x2a1a10, hairTop: 0xe8c77a, number: 0x1d4ed8,
+});
+
 const builders: Record<SkinId, () => CharacterRig> = {
   palhaco: clown,
   coringa: joker,
@@ -273,6 +340,9 @@ const builders: Record<SkinId, () => CharacterRig> = {
   alien: () => customHero(...customLooks.alien),
   bombeiro: () => customHero(...customLooks.bombeiro),
   galaxia: () => customHero(...customLooks.galaxia),
+  subaru,
+  yamal,
+  neymar,
 
 };
 

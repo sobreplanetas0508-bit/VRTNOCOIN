@@ -29,7 +29,11 @@ describe("timer speed", () => {
     expect(normalizeTimerSpeed(4)).toBe(4);
     expect(normalizeTimerSpeed(5)).toBe(5);
   });
+  it("accepts 10x up to 50x", () => {
+    for (const s of [10, 20, 30, 40, 50]) expect(normalizeTimerSpeed(s)).toBe(s);
+  });
   it("falls back to 1x for unknown speeds", () => {
+    expect(normalizeTimerSpeed(60)).toBe(1);
     expect(normalizeTimerSpeed(6)).toBe(1);
   });
 });

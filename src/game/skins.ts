@@ -1,4 +1,4 @@
-export type SkinId = "palhaco" | "coringa" | "gato" | "cachorro" | "superman" | "astronauta" | "ninja" | "robo" | "pirata" | "zumbi" | "rei" | "samurai" | "alien" | "bombeiro" | "galaxia";
+export type SkinId = "palhaco" | "coringa" | "gato" | "cachorro" | "superman" | "astronauta" | "ninja" | "robo" | "pirata" | "zumbi" | "rei" | "samurai" | "alien" | "bombeiro" | "galaxia" | "subaru" | "yamal" | "neymar";
 
 export interface SkinInfo {
   id: SkinId;
@@ -24,6 +24,9 @@ export const SKINS: SkinInfo[] = [
   { id: "alien", name: "Alien", price: 1500, description: "Visual exclusivo alien." },
   { id: "bombeiro", name: "Bombeiro", price: 1650, description: "Visual exclusivo bombeiro." },
   { id: "galaxia", name: "Galáxia", price: 2000, description: "Visual exclusivo galáxia." },
+  { id: "subaru", name: "Subaru", price: null, description: "Direto de Re:Zero. Só com código secreto." },
+  { id: "yamal", name: "Yamal", price: null, description: "Craque do Barça. Só com código secreto." },
+  { id: "neymar", name: "Neymar", price: null, description: "Camisa 10 da Seleção. Só com código secreto." },
 ];
 
 export const SKIN_IDS = SKINS.map((s) => s.id);

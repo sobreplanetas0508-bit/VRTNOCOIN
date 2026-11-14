@@ -9,3 +9,7 @@
 - [x] Jump a little higher (small increase)
 - [x] Timer 3x only for player xw7
 - [x] Global chat: any signed-in player can send/read messages live
+- [x] ADM timer speeds 10x, 20x, 30x, 40x, 50x (count for ranking)
+- [x] Config tab: change coin color
+- [x] Code-only skins: Subaru, Yamal, Neymar
+- [x] Fullscreen button top-right (landscape play)

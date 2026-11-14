@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { TIMER_SPEEDS, formatSpeed } from "@/game/rules";
+import { COIN_COLORS } from "@/game/settings";
 
 const TITLE = "Fuga dos Trilhos — corra sem pegar moedas";
 const DESCRIPTION =
@@ -35,6 +37,8 @@ function Index() {
     <div className="fdt-root">
           <div className="sky"><div className="sun"></div></div>
           <canvas id="game"></canvas>
+
+          <button id="btn-fullscreen" className="hud-btn fs-btn" aria-label="Tela cheia" title="Tela cheia">⛶</button>
 
           {/* HUD */}
           <div id="hud" className="hidden">
@@ -96,6 +100,7 @@ function Index() {
                 <button className="tab" data-tab="chat">Chat</button>
                 <button className="tab" data-tab="ranking">Ranking</button>
                 <button className="tab" data-tab="admin">ADM</button>
+                <button className="tab" data-tab="config">Config</button>
               </nav>
 
               <div className="tab-body" id="tab-play">
@@ -122,6 +127,17 @@ function Index() {
                 <p id="code-msg" className="form-msg"></p>
               </div>
 
+              <div className="tab-body hidden" id="tab-config">
+                <p className="hint">Cor da moeda</p>
+                <div className="coin-colors" id="coin-colors">
+                  {COIN_COLORS.map((c) => (
+                    <button key={c.id} className="coin-color" data-coin={c.id} style={{ ["--c" as string]: c.main, ["--cd" as string]: c.dark }}>
+                      <span className="coin-ico"></span>{c.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="tab-body hidden" id="tab-admin">
                 <h3>Painel administrativo</h3>
                 <input id="admin-password" type="password" placeholder="Senha ADM" autoComplete="off" />
@@ -137,12 +153,9 @@ function Index() {
                   <p id="admin-timer-status" className="hint">Servidor: — · Você: —</p>
                   <p className="hint">1. Escolha a velocidade · 2. Toque onde ativar</p>
                   <div className="seg speed-seg" id="admin-speeds">
-                    <button className="seg-btn active" data-speed="1">1x</button>
-                    <button className="seg-btn" data-speed="1.5">1,5x</button>
-                    <button className="seg-btn" data-speed="2">2x</button>
-                    <button className="seg-btn" data-speed="3">3x</button>
-                    <button className="seg-btn" data-speed="4">4x</button>
-                    <button className="seg-btn" data-speed="5">5x</button>
+                    {TIMER_SPEEDS.map((v) => (
+                      <button key={v} className={v === 1 ? "seg-btn active" : "seg-btn"} data-speed={v}>{formatSpeed(v)}</button>
+                    ))}
                   </div>
                   <button id="admin-timer-server" className="btn btn-primary">Ativar para o servidor inteiro</button>
                   <button id="admin-timer-me" className="btn btn-ghost">Ativar só para mim</button>
