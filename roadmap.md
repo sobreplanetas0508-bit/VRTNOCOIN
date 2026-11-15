@@ -13,3 +13,8 @@
 - [x] Config tab: change coin color
 - [x] Code-only skins: Subaru, Yamal, Neymar
 - [x] Fullscreen button top-right (landscape play)
+- [x] Modo Chão é Lava (own version)
+- [x] Rastros do personagem (trails)
+- [x] Config: mostrar FPS, modo leve, mover cronômetro
+- [x] Keep ADM panel untouched
+- [ ] Copy look/animations of the other game: blocked until user sends its source ZIP (ownership)

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { TIMER_SPEEDS, formatSpeed } from "@/game/rules";
-import { COIN_COLORS } from "@/game/settings";
+import { COIN_COLORS, TRAILS } from "@/game/settings";
 
 const TITLE = "Fuga dos Trilhos — corra sem pegar moedas";
 const DESCRIPTION =
@@ -109,6 +109,12 @@ function Index() {
                   <li>Tocou numa moeda? O cronômetro <b>para</b>, mas a corrida continua — e a moeda vai pro seu cofre.</li>
                   <li>Use as moedas para liberar personagens. Use o tempo para subir no <b>ranking global</b>.</li>
                 </ol>
+                <p className="hint">Modo de jogo</p>
+                <div className="seg" id="mode-seg">
+                  <button className="seg-btn active" data-mode="normal">Normal</button>
+                  <button className="seg-btn" data-mode="lava">🌋 Chão é Lava</button>
+                </div>
+                <p className="hint mode-hint hidden" id="lava-hint">Poças de lava aparecem nos trilhos: pule ou troque de trilho. Pisou na lava, acabou!</p>
                 <button id="btn-play" className="btn btn-primary btn-xl">Jogar</button>
                 <p className="keys">← → trocar trilho · ↑ / espaço pular · ↓ rolar · no celular, deslize</p>
               </div>
@@ -135,6 +141,21 @@ function Index() {
                       <span className="coin-ico"></span>{c.name}
                     </button>
                   ))}
+                </div>
+                <p className="hint cfg-title">Rastro do personagem</p>
+                <div className="coin-colors trail-grid" id="trail-grid">
+                  {TRAILS.map((t) => (
+                    <button key={t.id} className="coin-color trail-btn" data-trail={t.id} style={{ ["--t" as string]: t.id === "arco-iris" ? "linear-gradient(90deg,#ff4d6d,#ffd23f,#4ade80,#38bdf8,#a855f7)" : `linear-gradient(90deg,${t.colors.join(",")})` }}>
+                      <span className="trail-ico"></span>{t.name}
+                    </button>
+                  ))}
+                </div>
+                <p className="hint cfg-title">Tela</p>
+                <div className="cfg-list">
+                  <button id="cfg-fps" className="btn btn-ghost cfg-toggle">Mostrar FPS: <b>DESLIGADO</b></button>
+                  <button id="cfg-low" className="btn btn-ghost cfg-toggle">Modo leve: <b>DESLIGADO</b></button>
+                  <p className="hint">Modo leve: menos detalhes e sem sombras, roda melhor no celular.</p>
+                  <button id="cfg-timer" className="btn btn-ghost">⏱ Mover e redimensionar cronômetro</button>
                 </div>
               </div>
 
@@ -254,6 +275,22 @@ function Index() {
             </div>
           </section>
 
+          {/* TIMER EDITOR */}
+          <section id="screen-timer-edit" className="screen timer-edit-screen hidden">
+            <div className="panel small-panel timer-edit-panel">
+              <h2 className="title">Cronômetro</h2>
+              <p className="hint">Arraste o cronômetro para onde quiser.</p>
+              <label className="room-field">Tamanho
+                <input id="timer-size" type="range" min="60" max="160" step="5" defaultValue="100" />
+              </label>
+              <div className="timer-edit-actions">
+                <button id="timer-reset" className="btn btn-ghost">Resetar</button>
+                <button id="timer-done" className="btn btn-primary">Pronto</button>
+              </div>
+            </div>
+          </section>
+
+          <div id="fps-counter" className="fps-counter hidden">-- FPS</div>
           <div id="room-countdown" className="room-countdown hidden" aria-live="assertive"></div>
           <div id="toast" className="toast hidden"></div>
 

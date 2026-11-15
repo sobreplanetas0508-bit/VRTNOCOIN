@@ -1182,3 +1182,44 @@ input {
   z-index: 50;
   font-size: 22px;
 }
+
+/* ---------- Chão é Lava, trails, screen settings ---------- */
+.mode-hint { margin-top: -10px; color: var(--g-sun); }
+#mode-seg .seg-btn[data-mode="lava"].active { background: linear-gradient(90deg, #ff4d00, #ffb703); color: var(--g-ink); }
+.cfg-title { margin-top: 18px; }
+.trail-btn .trail-ico {
+  display: inline-block;
+  width: 26px;
+  height: 10px;
+  border-radius: 6px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: var(--t);
+}
+.trail-btn[data-trail="none"] .trail-ico { background: rgba(255, 255, 255, 0.15); }
+.cfg-list { display: grid; gap: 8px; }
+.cfg-toggle { display: flex; justify-content: space-between; text-align: left; }
+.timer { scale: var(--g-timer-scale, 1); transform-origin: top center; }
+.timer.editing {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  outline: 3px dashed var(--g-sun);
+  outline-offset: 6px;
+}
+.timer-edit-screen { align-items: flex-end; justify-content: center; pointer-events: none; }
+.timer-edit-panel { pointer-events: auto; margin-bottom: max(16px, env(safe-area-inset-bottom)); }
+.timer-edit-panel input[type="range"] { width: 100%; }
+.timer-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.fps-counter {
+  position: fixed;
+  left: 10px;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 40;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #7cff9b;
+  font: 700 12px/1.4 ui-monospace, monospace;
+  pointer-events: none;
+}

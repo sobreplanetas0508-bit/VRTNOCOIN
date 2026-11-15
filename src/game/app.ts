@@ -4,7 +4,7 @@ import { api, formatTime, ApiError, type PlayerData, type LeaderboardEntry, type
 import { SKINS, LEADERBOARD_SIZE } from "./skins";
 import { playerTags, OWNER_TAG, ROOM_MIN_PLAYERS, formatSpeed, normalizeTimerSpeed } from "./rules";
 import { RoomSync, type RaceProgress } from "./room-sync";
-import { COIN_COLORS, coinColor, loadCoinColor, saveCoinColor } from "./settings";
+import { COIN_COLORS, TRAILS, coinColor, loadCoinColor, saveCoinColor, loadPrefs, savePrefs, type TrailId } from "./settings";
 import { ChatSync, loadChat, sendChat, type ChatMessage } from "./chat";
 
 let started = false;
@@ -108,6 +108,8 @@ async function startRun(): Promise<boolean> {
     btns.forEach((b) => (b.disabled = false));
   }
   game.setSkin(player.selectedSkin);
+  // Room races stay in normal mode so everyone races under the same rules.
+  game.setLavaMode(!inRoomRace && prefs.lava);
   previewSkin = null;
   timerEl.classList.remove("frozen");
   timerLabel.textContent = "SEM MOEDAS";
@@ -132,7 +134,7 @@ async function finishRun(r: RunResult) {
   $("#over-time").textContent = formatTime(r.noCoinMs);
   $("#over-coins").textContent = String(r.coins);
   $("#over-rank").textContent = "…";
-  $("#over-title").textContent = "Fim de corrida!";
+  $("#over-title").textContent = r.cause === "lava" ? "Você pisou na lava! 🌋" : "Fim de corrida!";
   $("#over-msg").textContent = "Salvando no ranking global…";
   $("#over-msg").className = "form-msg";
   showScreen("over");
@@ -340,6 +342,120 @@ document.querySelectorAll<HTMLButtonElement>("#coin-colors [data-coin]").forEach
     applyCoinColor(id);
     toast(`Moeda ${COIN_COLORS.find((c) => c.id === id)?.name.toLowerCase()} ativada!`);
   }));
+
+// ------------------------------------------------------------------ device prefs (mode, trail, screen)
+const prefs = loadPrefs();
+const persist = () => savePrefs(prefs);
+
+function applyMode() {
+  document.querySelectorAll<HTMLButtonElement>("#mode-seg [data-mode]").forEach((b) =>
+    b.classList.toggle("active", (b.dataset.mode === "lava") === prefs.lava));
+  show($("#lava-hint"), prefs.lava);
+}
+document.querySelectorAll<HTMLButtonElement>("#mode-seg [data-mode]").forEach((b) =>
+  b.addEventListener("click", () => {
+    prefs.lava = b.dataset.mode === "lava";
+    persist();
+    applyMode();
+  }));
+applyMode();
+
+function applyTrail() {
+  game.setTrail(prefs.trail);
+  document.querySelectorAll<HTMLButtonElement>("#trail-grid [data-trail]").forEach((b) =>
+    b.classList.toggle("active", b.dataset.trail === prefs.trail));
+}
+document.querySelectorAll<HTMLButtonElement>("#trail-grid [data-trail]").forEach((b) =>
+  b.addEventListener("click", () => {
+    prefs.trail = b.dataset.trail as TrailId;
+    persist();
+    applyTrail();
+    toast(prefs.trail === "none" ? "Rastro desligado." : `Rastro ${TRAILS.find((t) => t.id === prefs.trail)?.name} ativado!`);
+  }));
+applyTrail();
+
+const onOff = (v: boolean) => (v ? "LIGADO" : "DESLIGADO");
+let fpsRaf = 0;
+function applyFps() {
+  $("#cfg-fps").querySelector("b")!.textContent = onOff(prefs.showFps);
+  const el = $("#fps-counter");
+  show(el, prefs.showFps);
+  cancelAnimationFrame(fpsRaf);
+  if (!prefs.showFps) return;
+  let frames = 0;
+  let last = performance.now();
+  const loop = (now: number) => {
+    frames++;
+    if (now - last >= 500) {
+      el.textContent = `${Math.round((frames * 1000) / (now - last))} FPS`;
+      frames = 0;
+      last = now;
+    }
+    fpsRaf = requestAnimationFrame(loop);
+  };
+  fpsRaf = requestAnimationFrame(loop);
+}
+$("#cfg-fps").addEventListener("click", () => { prefs.showFps = !prefs.showFps; persist(); applyFps(); });
+applyFps();
+
+function applyLow() {
+  $("#cfg-low").querySelector("b")!.textContent = onOff(prefs.lowMode);
+  game.setLowQuality(prefs.lowMode);
+}
+$("#cfg-low").addEventListener("click", () => { prefs.lowMode = !prefs.lowMode; persist(); applyLow(); });
+applyLow();
+
+// Timer position/size: drag the HUD timer anywhere, saved on this device.
+function applyTimerLayout() {
+  const p = prefs.timerPos;
+  timerEl.style.left = p ? `${p.x * 100}%` : "";
+  timerEl.style.top = p ? `${p.y * 100}%` : "";
+  timerEl.style.setProperty("--g-timer-scale", String(prefs.timerScale));
+  $<HTMLInputElement>("#timer-size").value = String(Math.round(prefs.timerScale * 100));
+}
+applyTimerLayout();
+let editingTimer = false;
+$("#cfg-timer").addEventListener("click", () => {
+  editingTimer = true;
+  show(screens.menu, false);
+  show($("#hud"));
+  show($("#screen-timer-edit"));
+  timerEl.classList.add("editing");
+});
+function closeTimerEditor() {
+  editingTimer = false;
+  timerEl.classList.remove("editing");
+  show($("#screen-timer-edit"), false);
+  showScreen("menu");
+}
+$("#timer-done").addEventListener("click", () => { persist(); closeTimerEditor(); toast("Cronômetro salvo!"); });
+$("#timer-reset").addEventListener("click", () => { prefs.timerPos = null; prefs.timerScale = 1; persist(); applyTimerLayout(); });
+$<HTMLInputElement>("#timer-size").addEventListener("input", (e) => {
+  prefs.timerScale = Number((e.target as HTMLInputElement).value) / 100;
+  applyTimerLayout();
+});
+timerEl.addEventListener("pointerdown", (e) => {
+  if (!editingTimer) return;
+  e.preventDefault();
+  timerEl.setPointerCapture(e.pointerId);
+  const rect = timerEl.getBoundingClientRect();
+  const offX = e.clientX - (rect.left + rect.width / 2);
+  const offY = e.clientY - rect.top;
+  const move = (ev: PointerEvent) => {
+    const x = Math.min(0.92, Math.max(0.08, (ev.clientX - offX) / window.innerWidth));
+    const y = Math.min(0.85, Math.max(0, (ev.clientY - offY) / window.innerHeight));
+    prefs.timerPos = { x, y };
+    applyTimerLayout();
+  };
+  const up = () => {
+    timerEl.removeEventListener("pointermove", move);
+    timerEl.removeEventListener("pointerup", up);
+    timerEl.removeEventListener("pointercancel", up);
+  };
+  timerEl.addEventListener("pointermove", move);
+  timerEl.addEventListener("pointerup", up);
+  timerEl.addEventListener("pointercancel", up);
+});
 
 // ------------------------------------------------------------------ skins
 function renderSkins() {

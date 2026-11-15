@@ -12,7 +12,9 @@ const ROLL_TIME = 0.75;
 const START_SPEED = 15;
 const MAX_SPEED = 36;
 
-type ObstacleKind = "barrier" | "overhead" | "train";
+type ObstacleKind = "barrier" | "overhead" | "train" | "lava";
+
+import { trailStyle, type TrailId } from "./settings";
 
 interface Obstacle {
   kind: ObstacleKind;
@@ -35,6 +37,8 @@ interface Coin {
 }
 
 export interface RunResult {
+  /** What ended the run: an obstacle, or stepping on lava in "Chão é Lava" mode. */
+  cause?: "hit" | "lava";
   noCoinMs: number;
   coins: number;
   runMs: number;
@@ -90,6 +94,15 @@ export class Game {
   private crashT = 0;
   private shake = 0;
   private time = 0;
+  private lavaMode = false;
+  private crashCause: "hit" | "lava" = "hit";
+  private lavaMat = new THREE.MeshStandardMaterial({ color: 0xff5a1f, emissive: 0xff3300, emissiveIntensity: 1.1, roughness: 0.4 });
+  private lavaCoreMat = new THREE.MeshBasicMaterial({ color: 0xffd166 });
+  private sun!: THREE.DirectionalLight;
+  private trail: TrailId = "none";
+  private trailGeo = new THREE.IcosahedronGeometry(0.13, 0);
+  private trailBits: { mesh: THREE.Mesh; life: number; vx: number; vy: number }[] = [];
+  private trailAcc = 0;
 
   constructor(private canvas: HTMLCanvasElement, private cb: GameCallbacks) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -117,6 +130,7 @@ export class Game {
     sun.position.set(-6, 14, 6);
     sun.target.position.set(0, 0, -8);
     sun.castShadow = true;
+    this.sun = sun;
     sun.shadow.mapSize.set(1024, 1024);
     const sc = sun.shadow.camera;
     sc.left = -9;
@@ -249,7 +263,21 @@ export class Game {
     let length = 0.4;
     let minY = 0;
     let maxY = 1.1;
-    if (kind === "barrier") {
+    if (kind === "lava") {
+      // Flat glowing pool: harmless in the air, deadly on the ground (even rolling).
+      length = 3.2;
+      minY = -1;
+      maxY = 0.08;
+      const pool = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.06, length), this.lavaMat);
+      pool.position.set(0, 0.03, -length / 2);
+      grp.add(pool);
+      for (let k = 0; k < 4; k++) {
+        const bubble = new THREE.Mesh(new THREE.CircleGeometry(0.12 + Math.random() * 0.12, 10), this.lavaCoreMat);
+        bubble.rotation.x = -Math.PI / 2;
+        bubble.position.set((Math.random() - 0.5) * 1.5, 0.07, -0.3 - Math.random() * (length - 0.6));
+        grp.add(bubble);
+      }
+    } else if (kind === "barrier") {
       const stripes = stripeMaterial("#e63946", "#fff6e9");
       const board = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.5, 0.18), stripes);
       board.position.y = 0.78;
@@ -379,6 +407,13 @@ export class Game {
 
     const minGap = hasTrain ? 24 : 15;
     this.nextGap = minGap + Math.random() * (12 - difficulty * 6) + this.speed * 0.15;
+
+    // "Chão é Lava": lava pools between rows, never on all three lanes, so you can dodge or jump.
+    if (this.lavaMode && Math.random() < 0.55 + difficulty * 0.3) {
+      const count = Math.random() < 0.3 + difficulty * 0.3 ? 2 : 1;
+      const lavaZ = z - Math.max(hasTrain ? 13.5 : 6, this.nextGap / 2);
+      shuffle([0, 1, 2]).slice(0, count).forEach((lane) => this.makeObstacle("lava", lane, lavaZ));
+    }
   }
 
   // ---------------------------------------------------------------- public API
@@ -401,6 +436,17 @@ export class Game {
     this.coinMat.emissive.set(dark).multiplyScalar(0.6);
   }
 
+  setLavaMode(on: boolean) { this.lavaMode = on; }
+
+  setTrail(id: TrailId) { this.trail = id; }
+
+  /** Light mode for weak phones: lower resolution and no shadows. */
+  setLowQuality(on: boolean) {
+    this.renderer.setPixelRatio(on ? 1 : Math.min(window.devicePixelRatio, 2));
+    this.sun.castShadow = !on;
+    this.resize();
+  }
+
   setTimerMultiplier(value: number) { this.timerMultiplier = normalizeTimerSpeed(value); }
 
   get currentSkin() {
@@ -419,6 +465,7 @@ export class Game {
     this.noCoinMs = 0;
     this.coinTouched = false;
     this.coinCount = 0;
+    this.crashCause = "hit";
     // Pre-populate the track so the action starts right away
     let z = -42;
     for (;;) {
@@ -470,6 +517,47 @@ export class Game {
     for (const c of this.coins) this.scene.remove(c.mesh);
     this.obstacles = [];
     this.coins = [];
+    for (const b of this.trailBits) this.scene.remove(b.mesh);
+    this.trailBits = [];
+  }
+
+  private updateTrail(dt: number, dist: number) {
+    for (let i = this.trailBits.length - 1; i >= 0; i--) {
+      const b = this.trailBits[i];
+      b.life -= dt;
+      b.mesh.position.z += dist;
+      b.mesh.position.x += b.vx * dt;
+      b.mesh.position.y += b.vy * dt;
+      b.mesh.rotation.x += dt * 4;
+      const t = Math.max(0, b.life / 0.6);
+      b.mesh.scale.setScalar(0.3 + t * 0.9);
+      (b.mesh.material as THREE.MeshBasicMaterial).opacity = t;
+      if (b.life <= 0) {
+        this.scene.remove(b.mesh);
+        (b.mesh.material as THREE.Material).dispose();
+        this.trailBits.splice(i, 1);
+      }
+    }
+    if (this.trail === "none" || this.mode !== "running") return;
+    this.trailAcc += dt;
+    while (this.trailAcc > 0.025) {
+      this.trailAcc -= 0.025;
+      const style = trailStyle(this.trail);
+      const color = new THREE.Color(style.colors[Math.floor(Math.random() * style.colors.length)]);
+      if (this.trail === "arco-iris") color.setHSL((this.time * 0.6) % 1, 0.9, 0.6);
+      const mesh = new THREE.Mesh(
+        this.trailGeo,
+        new THREE.MeshBasicMaterial({ color, transparent: true, depthWrite: false }),
+      );
+      mesh.position.set(this.x + (Math.random() - 0.5) * 0.35, this.y + 0.35 + Math.random() * 0.6, 0.45);
+      this.scene.add(mesh);
+      this.trailBits.push({
+        mesh,
+        life: 0.6,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: style.rise + (Math.random() - 0.5) * 0.6,
+      });
+    }
   }
 
   // ---------------------------------------------------------------- input
@@ -574,6 +662,8 @@ export class Game {
     if (!this.coinTouched) this.noCoinMs += dt * 1000 * this.timerMultiplier;
 
     this.scrollWorld(dist);
+    this.updateTrail(dt, dist);
+    if (this.lavaMode) this.lavaMat.emissiveIntensity = 0.9 + Math.sin(this.time * 6) * 0.35;
 
     // spawn
     this.distSinceSpawn += dist;
@@ -634,6 +724,7 @@ export class Game {
       const hitZ = front + 0.15 > -pHalfD && back - 0.15 < pHalfD;
       const hitY = pMaxY > o.minY && pMinY < o.maxY;
       if (hitX && hitZ && hitY) {
+        this.crashCause = o.kind === "lava" ? "lava" : "hit";
         this.crash();
         return;
       }
@@ -704,6 +795,7 @@ export class Game {
     if (this.crashT > 0.9 && this.mode === "crashing") {
       this.mode = "over";
       this.cb.onGameOver({
+        cause: this.crashCause,
         noCoinMs: Math.floor(this.noCoinMs),
         coins: this.coinCount,
         runMs: Math.floor(this.runMs),
